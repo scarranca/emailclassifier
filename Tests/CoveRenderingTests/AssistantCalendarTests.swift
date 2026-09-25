@@ -130,8 +130,8 @@ import XCTest
     let agent = AssistantCalendar(complete: { _ in self.plan.replacingOccurrences(of: "propose", with: "agenda") },
       calendar: { start, end in [LocalEvent(title: "Project check-in", start: start, end: end)] }, calendarAvailable: true, now: now)
     guard case .agenda(let answer) = try await agent.respond("What is on my calendar?", progress: { _ in }) else { return XCTFail() }
-    XCTAssertTrue(answer.contains("Project check-in"))
-    XCTAssertTrue(answer.contains("primary Google Calendar"))
+    XCTAssertTrue(answer.plainText.contains("Project check-in"))
+    XCTAssertTrue(answer.plainText.contains("primary Google Calendar"))
   }
 
   func testProductionEventPreviewRendersAtNarrowWidth() throws {

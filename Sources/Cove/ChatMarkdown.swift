@@ -20,7 +20,7 @@ struct ChatMarkdownDocument {
   let root: ChatMarkdownNode
   init(_ source: String) {
     root = ChatMarkdownNode(id: -1, kind: .document)
-    guard let parsed = try? AttributedString(markdown: source, options: .init(
+    guard let parsed = try? AttributedString(markdown: Self.normalizeBullets(source), options: .init(
       interpretedSyntax: .full, failurePolicy: .returnPartiallyParsedIfPossible)) else {
       root.text = AttributedString(source)
       return
@@ -69,6 +69,28 @@ struct ChatMarkdownDocument {
     if root.children.isEmpty && root.text.characters.isEmpty && !source.isEmpty {
       root.text = AttributedString(source)
     }
+  }
+
+  /// Models sometimes emit typographic bullets instead of Markdown list markers.
+  /// Convert only standalone list lines, and preserve fenced/indented code exactly.
+  static func normalizeBullets(_ source: String) -> String {
+    var fence: (Character, Int)?
+    return source.components(separatedBy: "\n").map { line in
+      let trimmed = line.drop(while: { $0 == " " })
+      let indentation = line.count - trimmed.count
+      guard indentation <= 3 else { return line }
+      if let first = trimmed.first, first == "`" || first == "~" {
+        let count = trimmed.prefix(while: { $0 == first }).count
+        if count >= 3 {
+          if let opened = fence {
+            if first == opened.0 && count >= opened.1 && trimmed.dropFirst(count).allSatisfy(\.isWhitespace) { fence = nil }
+          } else { fence = (first, count) }
+          return line
+        }
+      }
+      guard fence == nil, trimmed.hasPrefix("• ") || trimmed.hasPrefix("▪ ") || trimmed.hasPrefix("◦ ") else { return line }
+      return String(repeating: " ", count: indentation) + "- " + trimmed.dropFirst(2)
+    }.joined(separator: "\n")
   }
 
   static func allowsLink(_ url: URL) -> Bool {

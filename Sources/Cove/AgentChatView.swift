@@ -151,9 +151,10 @@ struct AssistantView: View {
             }.buttonStyle(.plain).help("Choose an email or its whole thread").disabled(working)
           } else {
             Label(
-              store.isSample
-                ? "Mailbox · sample data on this Mac" : "Downloaded passages · live Gmail counts",
-              systemImage: "tray.full"
+              exchanges.last?.isCalendar == true
+                ? (store.isSample ? "Calendar · sample data on this Mac" : "Your calendar")
+                : (store.isSample ? "Mailbox · sample data on this Mac" : "Downloaded passages · live Gmail counts"),
+              systemImage: exchanges.last?.isCalendar == true ? "calendar" : "tray.full"
             )
             .font(.cove(size: 12)).foregroundStyle(Palette.body)
             .padding(.vertical, 4)
@@ -233,7 +234,8 @@ struct AssistantView: View {
       }
       VStack(alignment: .leading, spacing: 22) {
         if let answer = exchange.answer {
-          ChatMarkdown(answer)
+          if let agenda = exchange.agenda { AssistantAgendaView(agenda: agenda) }
+          else { ChatMarkdown(answer) }
           if let proposal = exchange.eventProposal, !exchange.eventCreated {
             AssistantEventCard(proposal: proposal, created: exchange.eventCreated) {
               var draft = CalendarEventDraft(title: proposal.title, start: proposal.start, end: proposal.end)
@@ -628,7 +630,7 @@ struct AssistantView: View {
             try await aiSettings.complete(prompt, provider: provider, model: model)
           }, calendar: { from, to in
             try await store.writingCalendar(from: from, to: to)
-          }, calendarAvailable: store.calendarConnected || store.isSample)
+          }, calendarAvailable: store.calendarConnected || store.isSample, sample: store.isSample)
           let result = try await router.respond(question, mails: selectedMails, history: conversationHistory) { progress in
             if let index = exchanges.firstIndex(where: { $0.id == exchange.id }) {
               exchanges[index].progress = progress
@@ -648,10 +650,11 @@ struct AssistantView: View {
             exchanges[index].answer = "Here’s your event to review. It hasn’t been added yet."
             exchanges[index].source = "Calendar · nothing created"
             return
-          case .agenda(let text):
+          case .agenda(let agenda):
             exchanges[index].isCalendar = true
-            exchanges[index].answer = text
-            exchanges[index].source = "Calendar · live lookup"
+            exchanges[index].agenda = agenda
+            exchanges[index].answer = agenda.plainText
+            exchanges[index].source = store.isSample ? "Calendar · sample data" : "Calendar · live lookup"
             return
           case .email: break
           }
@@ -770,6 +773,7 @@ struct ChatExchange: Identifiable {
   var progress: String?
   var isCalendar = false
   var eventProposal: AssistantCalendar.Proposal?
+  var agenda: AssistantAgenda?
   var eventCreated = false
   var feedback: AssistantFeedback?
   var groundingLabel: String {

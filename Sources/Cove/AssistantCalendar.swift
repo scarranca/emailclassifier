@@ -8,6 +8,7 @@ import Foundation
   let calendarAvailable: Bool
   var now = Date()
   var timeZone = TimeZone.current
+  var sample = false
 
   struct Proposal: Equatable {
     let title: String
@@ -19,7 +20,7 @@ import Foundation
     case email
     case clarification(String)
     case proposal(Proposal)
-    case agenda(String)
+    case agenda(AssistantAgenda)
   }
   private struct Plan: Decodable {
     enum Action: String, Decodable { case email, clarify, propose, agenda }
@@ -64,10 +65,8 @@ import Foundation
         progress("Checking your calendar…")
         let events = try await calendar(start, end).filter { $0.end > start && $0.start < end }.sorted { $0.start < $1.start }
         try Task.checkCancellation()
-        let summary = events.isEmpty ? "No events found in this range." : events.prefix(40).map {
-          "• \($0.title) — \(label($0.start)) to \(label($0.end))"
-        }.joined(separator: "\n")
-        return .agenda("\(label(start)) – \(label(end))\n\n\(summary)\n\nChecked primary Google Calendar and Cove’s local events.\(events.count > 40 ? " Showing the first 40 events." : "")")
+        return .agenda(AssistantAgenda(start: start, end: end, events: Array(events.prefix(40)),
+          totalCount: events.count, now: now, timeZone: timeZone, sample: sample))
       }
       guard let title = plan.title?.trimmingCharacters(in: .whitespacesAndNewlines),
         !title.isEmpty, title.utf8.count <= 300, start >= now.addingTimeInterval(-120) else {
@@ -93,10 +92,4 @@ import Foundation
     }
   }
 
-  private func label(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.timeZone = timeZone
-    formatter.dateFormat = "EEE, MMM d, yyyy 'at' h:mm a z"
-    return formatter.string(from: date)
-  }
 }

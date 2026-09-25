@@ -6,6 +6,23 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Cove</title>
         <item>
+            <title>0.1.34</title>
+            <pubDate>Thu, 24 Sep 2026 22:51:11 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>36</sparkle:version>
+            <sparkle:shortVersionString>0.1.34</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>A clearer answer to “What’s on tomorrow?”</h2>
+<ul>
+<li>Calendar replies now use an agenda with a clear date heading, compact time ranges, and separate event rows.</li>
+<li>All-day events show “All day” instead of midnight timestamps. Overlapping meetings are marked, and longer schedules are grouped by date.</li>
+<li>Schedules adapt to narrow chat windows, with readable long event names and timezone-aware times. Copying an answer preserves the complete agenda text.</li>
+<li>Typographic bullet lists in other chat replies now render as separate list items while code blocks remain unchanged.</li>
+</ul>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.34.dmg" length="16282802" type="application/octet-stream" sparkle:edSignature="YWMFQWvntXwJOSUl2mjQdav0j5nmspD6/3znQ6oPaFJ/zFFdbPO8SiWERGvQ8qSH8DhLN3zQkYAi8/+Musw3Ag=="/>
+        </item>
+        <item>
             <title>0.1.33</title>
             <pubDate>Thu, 24 Sep 2026 22:29:12 -0700</pubDate>
             <link>https://covemail.xyz/beta/</link>
@@ -39,26 +56,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://covemail.xyz/downloads/Cove-0.1.32.dmg" length="15951992" type="application/octet-stream" sparkle:edSignature="h/oo5sHx400oXk8kmE5xKkgddaGqh1DQNV3mhToPitgxJifcAuCE7/Kg01vd5IpRPKXb1IbYTzcZsQeJ6hfCBA=="/>
         </item>
-        <item>
-            <title>0.1.31</title>
-            <pubDate>Thu, 24 Sep 2026 21:12:18 -0700</pubDate>
-            <link>https://covemail.xyz/beta/</link>
-            <sparkle:version>33</sparkle:version>
-            <sparkle:shortVersionString>0.1.31</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>A home for your agents’ categories</h2>
-<ul>
-<li>Categories now has its own page. Search your agents’ labels, see downloaded and unread counts, and open a category to browse its emails.</li>
-<li>Only labels configured in your agents or actually applied by them appear here. Fixed example shortcuts such as Purchases, Work, and Newsletters have been removed.</li>
-<li>Email rows show your agents’ applied labels instead of built-in category names. Existing Gmail labels remain editable in the reader.</li>
-<li>Follow-up flags and Jev’s assessments remain separate from Categories.</li>
-</ul>
-]]></description>
-            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.31.dmg" length="15876819" type="application/octet-stream" sparkle:edSignature="EYFvlfMMfPJLxz8zVkuMrCkDrLxVWbjfTApxP8v4XnCzFwyd2VOna8xw0SUhBFRNE76jlFDmuRqGBaOQawH0Dw=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: ouL22GsPJhK+dJlkzJcfKBVtxUbOi6t+MzFT+rKqWdrCfAn/xWC8HdV4wrJdWJTakxLEES6limaype0pi9iRDg==
-length: 4526
+edSignature: Lt/y6iigy8odx99grcWhGnA6VhCqK4oJrl75BEpN1Sv82WxVFaTL4xtQU1742qeAlBnBDEZJ5DKlFFmZ/mAcDw==
+length: 4544
 -->

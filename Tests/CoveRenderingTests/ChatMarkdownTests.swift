@@ -77,6 +77,16 @@ import XCTest
     XCTAssertTrue(row.children.first { $0.kind == .cell(1) }?.plainText.isEmpty ?? true)
   }
 
+  func testTypographicBulletLinesBecomeSeparateItemsWithoutChangingCode() throws {
+    let text = "Tomorrow\n\n• First event\n• Second event\n\n```text\n• literal bullet\n```\n\n    • indented code"
+    let document = ChatMarkdownDocument(text)
+    let list = try XCTUnwrap(document.root.children.first { $0.kind == .list(false) })
+    XCTAssertEqual(list.children.map(\.plainText), ["First event", "Second event"])
+    let code = try XCTUnwrap(document.root.children.first { $0.kind == .code("text") })
+    XCTAssertEqual(code.plainText, "• literal bullet\n")
+    XCTAssertTrue(ChatMarkdownDocument.normalizeBullets(text).contains("    • indented code"))
+  }
+
   func testPlainTextIncompleteMarkdownAndLiteralCodeStayReadable() {
     for source in ["Plain reply", "Unfinished **bold", "```\nlet unfinished = true", "Hola, mañana — 你好 👋"] {
       XCTAssertFalse(ChatMarkdownDocument(source).root.plainText.isEmpty)
