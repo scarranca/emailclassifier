@@ -1,0 +1,7 @@
+# Login completion page
+
+The Google browser callback now serves a self-contained Cove thank-you page after the account, encrypted mailbox, and Keychain transaction succeeds. Three dotted ribbons settle around the connection check, then stop. All content is visible immediately; reduced motion removes animation. The return instructions identify Cove and clearly say the browser tab can close.
+
+Denied sign-in, invalid callbacks, and connection/persistence failure have distinct non-success pages. Invalid callbacks continue leaving the active sign-in session untouched. A valid code waits for the transaction result; a 75-second bound returns an incomplete-connection page rather than hanging indefinitely. The HTTP response is no-store, no-referrer, nosniff, and uses a default-deny CSP. HTML contains no secrets, JavaScript, remote resources, or trackers.
+
+Validation: `swift test --filter 'OAuthCallbackPageTests|OAuthBrowserReplyTests|OAuthCalendarTests|OAuthCallbackRenderingTests'` passed all 8 tests on September 24, 2026. Coverage includes callback state/PKCE validation, response byte lengths and security headers, deferred/one-shot success and failure/timeout, offscreen WebKit at 1000 and 320 pixels, no horizontal overflow/external loads, and effective reduced-motion styles. Screenshots attached were visually reviewed. No foreground app, live Google login, or provider-managed browser callback was exercised or changed.

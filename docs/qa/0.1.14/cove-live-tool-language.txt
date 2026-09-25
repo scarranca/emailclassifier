@@ -1,0 +1,34 @@
+Model: gpt-6-sol
+Completions: 6
+Queries: ["{from:maya@example.com to:maya@example.com} Pine"]
+Calendar reads: 2
+
+Plans:
+{"tools":[{"name":"search_mail","query":"{from:maya@example.com to:maya@example.com} Pine"},{"name":"find_availability","day":"2026-09-24","durationMinutes":30,"startMinute":540,"endMinute":1020,"slotCount":3}]}
+{"tools":[{"name":"calendar","from":"2026-09-24T00:00:00-07:00","to":"2026-09-25T00:00:00-07:00"}]}
+{"tools":[]}
+
+Combined draft:
+Hi Maya,
+
+Thanks for sending the updated 4200 USD quote for Project Pine. I’d be glad to discuss the next steps. Would any of these 30-minute times work for you tomorrow?
+
+- Thursday, September 24, 2026 at 10:30 AM PDT
+- Thursday, September 24, 2026 at 11:00 AM PDT
+- Thursday, September 24, 2026 at 11:30 AM PDT
+
+Best,
+Santiago
+
+Calendar recap:
+Hi Maya,
+
+Tomorrow, September 24, I have a Project Pine review from 9:00 to 10:30 a.m. PT. That’s the only meeting on my calendar.
+
+Best,
+
+Spanish rewrite:
+Hola Maya, gracias por los detalles del proyecto. Los revisaré con cuidado y luego te compartiré mis comentarios. Me alegra que sigamos trabajando juntos.
+
+Un saludo,
+Santiago

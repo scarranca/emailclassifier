@@ -1,0 +1,1 @@
+Public Oslo coordinates (not user location). HTTP 200; forecast points: 87; Expires: Thu, 24 Sep 2026 05:29:06 GMT

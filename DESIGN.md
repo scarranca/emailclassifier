@@ -1,0 +1,81 @@
+# Cove design system
+
+Source of truth: the user's **Cove Design System · Foundations** and **Components** HTML exports, supplied September 21, 2026. Exact copies are preserved in `docs/design-source/`. The original five product screens define the layouts; the Foundations and Components HTML files define component styling. The later **Cove · Sign in with Gmail** HTML export defines the current welcome screen and is preserved as `docs/design-source/SignIn.html`.
+
+## Foundations
+
+| Token | sRGB value | Native use |
+| --- | --- | --- |
+| Canvas | #FFFFFF | Reading and editing backgrounds |
+| Surface | #FAFAFA | Secondary surfaces |
+| Sidebar | #F0F0F0 | Navigation and contextual headers |
+| Selected | #DEDEDE | Selected navigation |
+| Muted | #737373 | Metadata on white and near-white |
+| Body | #4B4B4B | Prose and text on gray fills |
+| Ink | #303030 | Headings, controls, primary actions |
+
+The native `Palette` preserves the supplied sRGB values. Darker body text is used when the muted token would fall below 4.5:1 on gray selected/sidebar surfaces.
+
+Typography is bundled **Inter**: display 42 medium, page title 24 regular, section 18 medium, body 14, controls 12 medium, metadata 11. Fonts are registered for the process through CoreText; no system font installation is required. SF Symbols supply native icons.
+
+Spacing scale: 4, 8, 12, 16, 24, 32, 40, 56. Sidebar width 224. Content insets 28–40. Controls use 6-point radii and a 40-point minimum height; fields use 42 points; panels use 10 points. macOS owns sheet window chrome and presentation.
+
+## Components
+
+`DesignSystem.swift` contains the shared palette, Inter font helpers, primary and secondary button styles, field style, segmented picker, and gradient avatars. Buttons have supplied default, hover (#454545), pressed (#171717), disabled (#E8E8E8/#999999), and charcoal focus states. The explicit focus outline supplements native keyboard focus. Hover transitions last 180ms and respect reduced motion.
+
+Draft badges use #EAE8EE / #62576F. Selected mail rows use the component export's #EBEBEB. People use the supplied periwinkle–lavender–peach gradient and dark #514960 initials. Memory removal offers Undo.
+
+The sign-in screen uses the exact monochrome mountain JPEG extracted from the dedicated sign-in export, with its 600/840 split and larger 54-point Gmail button. The original dotted-wave JPEG from Foundations remains bundled for future brand surfaces. Artwork stays off reading/editing surfaces. The font is bundled with its SIL Open Font License.
+
+## Behavior
+
+The macOS app icon uses the exact three-wave vector from the sign-in export, in near-white on a charcoal rounded tile. Source artwork, the 1024px preview, all macOS icon sizes and `Cove.icns` live in `assets/AppIcon/`. Regenerate with `swift scripts/build-icon.swift` and `iconutil -c icns assets/AppIcon/Cove.iconset -o assets/AppIcon/Cove.icns`. Packaging copies the icon to the app's Resources directory and declares it through `CFBundleIconFile`.
+
+Keep source passages labeled, preserve a review step before sending, show explicit errors, and distinguish sample data from connected data. Native date pickers, menus, keyboard shortcuts, and sheet behaviors remain in place. Model suggestions cannot send messages or create calendar events by themselves.
+
+## Dedicated product exports
+
+The later Main, Agent Hub, and Agent Chat HTML files are preserved in `docs/design-source/`. Main defines inbox and reading-pane spacing, date sections, summaries and draft controls. Agent Hub is the home route (⌘0), with the exact banner artwork, actual priority messages, contacts, attached files and activity counts. Agent Chat uses a maximum 752×800 modal that adapts to smaller windows, with an explicit email context picker, source passages and user-controlled actions. Hub counts and files derive from cached mail; assistant mailbox counts use live Gmail statistics when available and label local fallbacks. Jev's source excerpts remain labeled.
+
+The dedicated **Inbox — No email selected** export is preserved as `docs/design-source/InboxUnselected.html`. Opening an account or folder leaves the reader empty until an explicit row click, arrow-key navigation, or source link selects a message. The reading pane uses the supplied centered envelope tile, heading, instructions, navigation keycaps, and reassurance. Sync and filtering preserve an empty selection; a selected message hidden by the current view clears it. Escape clears selection when the mail list has keyboard focus. Search and reply editors retain their own arrow-key behavior.
+
+The **Cove · Contacts** export is preserved as `docs/design-source/Contacts.html`. Contacts uses its compact application navigation and groups, exact wave artwork, most-messaged strip, searchable directory, and detail pane. Contact records persist per account on this Mac; company and notes are user-maintained. Activity comes from downloaded mail. Calendar opens the existing calendar without creating an event, and Email opens an editable draft.
+
+The September 22 typography refinement follows the lighter current Pen Integrations headings and the user’s request to ease boldness throughout the app. Explicit content headings and navigation emphasis use medium rather than semibold; the compact 26-point Cove wordmark retains its brand weight. Unread rows retain a distinct medium weight and unread marker.
+
+Compose drafting motion (0.1.9): Cove's dotted-wave artwork informs a restrained monochrome particle stream from the assistant to the message canvas during real work. Actual generated text then reveals in a clearly labeled suggestion preview. Keep Apply/Keep original explicit; preserve the original draft and honor Reduce Motion. Provider configuration belongs in Integrations, not the writing flow. Context is visible beside instructions, with recipients suggested in To.
+
+Compose motion (0.1.10): a compact incoming dot stream accompanies actual work; once a suggestion returns, up to 1,400 dots converge onto TextKit glyph outlines and uncover the same native selectable text. The finite 1.25-second reveal never gates Apply; pointer, scroll, or keyboard interaction finishes it immediately. Review edits never replay the reveal, and Reduce Motion skips it. Calendar event controls have explicit outlines, 4-point vertical gutters, 8-point horizontal gutters, and distinct selected/hover states. Presentation lanes account for minimum clickable heights so short consecutive events do not cover one another; their exact times remain unchanged.
+
+0.1.11 motion refinement: AI waiting stages use static text and a cancel affordance, with no looping particles or refinement spinner. Preserve the finite dot-to-glyph reveal exactly when the actual suggestion arrives, along with immediate interaction and Reduce Motion behavior.
+
+
+0.1.12 compose polish: thinking uses a small native progress indicator and truthful phase label, with a static skeleton in an empty canvas. Reduce Motion uses a static hourglass. No looping particles return. After generation, the wide compose canvas is the editable pending suggestion; the sidebar contains concise voice/request metadata, Apply/Keep original, collapsed comparison, a compact follow-up composer with prompt shortcuts, and collapsed Sources & checks. Compact layouts and replies keep inline editing. The finite returned-text reveal stays, finishes on interaction, and never replays for manual edits. Original text remains untouched until Apply.
+
+
+0.1.13: the main canvas owns a compact, left-aligned Apply draft action below its text area. The wide sidebar keeps Keep original and refinement controls without a duplicate primary action. Selecting text reveals Rewrite selection on the canvas; the follow-up composer identifies selected scope. Writing shortcuts execute their labeled action. Native selection is synchronized across compact inline review and the main canvas, including focus changes. The finite text reveal and quiet waiting treatment are unchanged.
+
+
+0.1.14 writing failures stay above the scrolling assistant panel so they remain visible even with many context cards. Show the attempted model, specific reason, Try again and Writing settings. Preserve pending text on failure; retries retain the prior scope and reject stale edits. Sources & checks includes actual Gmail queries and calendar date ranges.
+
+
+0.1.15 assistant scheduling: calendar requests show truthful understanding/checking stages and a dedicated event card with date, time zone, overlap status, and Review event. Review opens the shared editable Calendar form; only Add event commits. Created events replace the proposal with confirmation, and failed saves remain visible. Calendar responses have no email source cards; inline Markdown emphasis now renders in assistant text.
+
+
+0.1.16 Hub actions: each Keep in touch person has a small Ignore action beside their name. The ignored address stays excluded until Undo or restoration through the Ignored menu. Keep email Archive/Delete controls outside the priority card’s reader-opening button. Delete confirms Move to Trash and identifies the destination. Mail-list right-click menus expose the same actions; reader toolbar actions remain available.
+
+
+0.1.17 Home: place today's agenda and pending invitations above priority mail, with compact explicit Accept/Maybe/Decline controls. Weather is an optional sidebar card with location permission, manual city fallback, cached forecast timestamps and source attribution. Mail deletion uses a small bottom notification, a five-second numeric/ring countdown and Undo. Enter from the bottom with a 200 ms fade/slide; Reduce Motion uses a fade. Delay the Gmail Trash request until expiry, reset the shared window for rapid deletions, and preserve native ⌘Delete text editing when an editor has focus. This replaces the prior confirmation dialog for existing-mail Delete actions.
+
+0.1.18 Home hierarchy: HomeType scopes stronger hierarchy to Home. Today, Invitations, and Worth your attention use 18-point semibold headings; Weather, contacts, attachments, and activity use 16-point medium. Actionable event/email titles use 14-point semibold, while contact/file titles use 14-point medium. Explanatory excerpts use 12-point regular body color, actions use 12-point medium, and timestamps/provenance use 11-point metadata. Agenda start times are medium with monospaced digits; invitation dates no longer outweigh titles. Compact Home shows priority mail before Weather. Weather exposes city selection immediately and differentiates location, city search, and forecast loading.
+
+Custom agents (0.1.19) follow Pen's Create custom agent and Your agents references. The management list uses aligned status/activity columns, quiet row dividers and native action menus. The editor keeps natural-language criteria on the left and an inert preview on the right; compact widths stack these with a persistent save footer. Draft/active/paused and match/no-match/review are explicit text states. Unsupported extraction is shown as source evidence and coverage warnings, never invented fields.
+
+Conditional agents (0.1.20) extend the existing editor with ordered When/Then rules. Each rule has a compact action picker, with only the applicable label/reply fields visible. Order controls express first-match behavior. Routing previews show the matched condition and intended actions; editable sample text supports branch testing. Generated replies live in Activity with a small left-aligned Use reply as draft button. The list surfaces pending replies directly.
+
+0.1.21 inbox: match the updated Pen `1. Cove` frame with a 40-point attention/draft status line, 700-weight unread sender/subject, white unread rows and F7F7F7 read rows. Selected EBEBEB and hover EFEFEF remain distinct. Three compact sibling quick actions replace the timestamp on hover/selection without shifting the row. Use a 140 ms fade, disabled under Reduce Motion. Native keyboard handling spans list and reader, yields to editors and dialogs, and supports Up/Down plus Escape/Left back. Reader navigation chevrons now point up/down and remain usable during sync.
+
+0.1.23 agent chat: revised Pen `1. Cove Agent Chat` (Fe933/VxRhd) uses a single-line 16-point semibold header and 32-point emblem; plain 12-point context; 15-point questions and answers; a 464-point maximum question bubble; and borderless 18-point semibold source titles. Keep only the first source expanded by default. Outline Review draft/Open email, keep Remind me quiet, and ground the footer in an actual distinct-email count. The composer contains context, the configured model selector, compact Mail search and a 34-point send/stop control. Use a white input with a one-point outline and 12-point corners. Keep privacy/context details reachable from the small footer info control. Feedback remains visibly selected and local to the conversation; no remote feedback claim. Long answers scroll above the composer; compact widths shorten the Mail search control without removing its accessible name.
+
+0.1.29 Integrations: Writing and answers occupies the main reading width above upcoming integrations. Show the saved default, one account selector with subscription/API billing labels, compact connected status with Manage connection, and one model selector. Version labels come from the official Claude CLI; Automatic is explicitly distinct from pinned versions. Test & use model validates before saving, with inline progress/cancel and success/error feedback. Keep connection internals and privacy details collapsed, preserve failed/cancelled defaults, and use the same model labels in chat.

@@ -1,0 +1,29 @@
+Model: gpt-6-sol
+Calendar reads: 2
+Completions: 4
+Available · Thursday, September 24, 2026 at 10:30 AM PDT
+Available · Thursday, September 24, 2026 at 11:00 AM PDT
+Available · Thursday, September 24, 2026 at 11:30 AM PDT
+30-minute meeting; 09:00–17:00 on 2026-09-24; America/Los_Angeles. Checked primary Google Calendar and Cove local events only; other calendars and the recipient’s availability are not checked.
+
+First draft:
+Hi Martha,
+
+Would you be available for a 30-minute meeting on Thursday, September 24, 2026 at 10:30 AM PDT? Please let me know if that works for you.
+
+Best,
+Santiago
+
+Follow-up:
+Hi Martha,
+
+Would any of these times work for a 30-minute meeting?
+
+- Thursday, September 24, 2026 at 10:30 AM PDT
+- Thursday, September 24, 2026 at 11:00 AM PDT
+- Thursday, September 24, 2026 at 11:30 AM PDT
+
+Please let me know which works for you.
+
+Best,
+Santiago

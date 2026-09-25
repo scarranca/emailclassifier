@@ -1,0 +1,65 @@
+<?xml version="1.0" standalone="yes"?>
+<!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+-->
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Cove</title>
+        <item>
+            <title>0.1.32</title>
+            <pubDate>Thu, 24 Sep 2026 21:25:13 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>34</sparkle:version>
+            <sparkle:shortVersionString>0.1.32</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>Quieter reviews, more reliable deletion</h2>
+<ul>
+<li>Uncertain agent results now stay in Agents → Activity without adding a Gmail label. A Needs review filter makes them easier to find. Existing review labels are left unchanged.</li>
+<li>Clearly unrelated email no longer becomes a review solely because an attachment could not be read. Uncertain or incomplete matches still require review before an agent acts.</li>
+<li>⌘Delete can queue emails while Cove is busy. The notification distinguishes waiting from an active Gmail request, and Undo remains available until the request starts.</li>
+<li>Deleting another email while a previous deletion is being sent keeps a separate undo window. Long waits restore the affected emails with an error instead of leaving a stuck notification.</li>
+</ul>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.32.dmg" length="15951992" type="application/octet-stream" sparkle:edSignature="h/oo5sHx400oXk8kmE5xKkgddaGqh1DQNV3mhToPitgxJifcAuCE7/Kg01vd5IpRPKXb1IbYTzcZsQeJ6hfCBA=="/>
+        </item>
+        <item>
+            <title>0.1.31</title>
+            <pubDate>Thu, 24 Sep 2026 21:12:18 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>33</sparkle:version>
+            <sparkle:shortVersionString>0.1.31</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>A home for your agents’ categories</h2>
+<ul>
+<li>Categories now has its own page. Search your agents’ labels, see downloaded and unread counts, and open a category to browse its emails.</li>
+<li>Only labels configured in your agents or actually applied by them appear here. Fixed example shortcuts such as Purchases, Work, and Newsletters have been removed.</li>
+<li>Email rows show your agents’ applied labels instead of built-in category names. Existing Gmail labels remain editable in the reader.</li>
+<li>Follow-up flags and Jev’s assessments remain separate from Categories.</li>
+</ul>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.31.dmg" length="15876819" type="application/octet-stream" sparkle:edSignature="EYFvlfMMfPJLxz8zVkuMrCkDrLxVWbjfTApxP8v4XnCzFwyd2VOna8xw0SUhBFRNE76jlFDmuRqGBaOQawH0Dw=="/>
+        </item>
+        <item>
+            <title>0.1.30</title>
+            <pubDate>Thu, 24 Sep 2026 20:51:04 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>32</sparkle:version>
+            <sparkle:shortVersionString>0.1.30</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>Your labels and follow-ups, together</h2>
+<ul>
+<li>Browse Gmail labels in Cove, including labels applied by your agents. Label views include inbox and archived mail, with search, unread filtering, sorting, and older messages loaded from Gmail.</li>
+<li>Add or remove an email’s labels in the reader. When a Cove agent applied a label, the reader shows which agent did it.</li>
+<li>Flag emails for follow-up from the list, reader, or Home. These flags sync with Gmail’s stars and appear in the Flagged view.</li>
+<li>Jev’s saved assessments now appear as Needs action, Time-sensitive, and Review category badges, with dedicated sidebar views. These assessments remain separate from your manual follow-up flags.</li>
+</ul>
+<p>Jev flags and displayed counts reflect downloaded mail. Open a label and load older mail to browse more of its messages.</p>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.30.dmg" length="15805542" type="application/octet-stream" sparkle:edSignature="wvY3EulVZ3lCyXTE8nL5JRzG2LCoBOiE5VUHYZ2wOPioYcZXDHJgA44Z8t3gMeYV3KsOLooswJt21Qqg1BZTBA=="/>
+        </item>
+    </channel>
+</rss>
+<!-- sparkle-signatures:
+edSignature: 1oTdWrktSxoIk8pbaz0/0Gx29ns2LcVSVvSEXwsjbypQAMpQGWzZLbB2k/Am5VQiuokMxIbwCjyTzQNIfE+0Dg==
+length: 4719
+-->

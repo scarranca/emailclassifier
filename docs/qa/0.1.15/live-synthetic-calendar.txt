@@ -1,0 +1,5 @@
+Model: gpt-6-sol
+Clarification: Should your focus event start now or in 30 minutes, and how long should it last?
+Preview: Focus time 2026-09-23 17:30:00 +0000 to 2026-09-23 18:00:00 +0000
+No overlaps found in your primary Google Calendar and Cove’s local events. Other calendars and guests haven’t been checked.
+Calendar reads: 1. No real calendar or mail access; no write capability.
