@@ -85,3 +85,7 @@ Conditional agents (0.1.20) extend the existing editor with ordered When/Then ru
 
 
 0.1.36 connectivity: transient URL networking failures from shared app operations and read-state updates use a small bottom-left connection tag instead of the global alert. The neutral pill opens details on click, with Retry sync for failed main-mailbox sync and an optional Dismiss. Successful retries clear the matching issue; local work or stale successes cannot clear it. Repeated failures do not replay the entrance. Honor Reduce Motion. Keep unconfirmed-send, certificate, storage, and other non-connectivity warnings explicit; do not automatically replay mutations.
+
+### Calendar line hierarchy
+
+Calendar guides use the existing line token at 50% opacity; half-hour guides use 22%. Event outlines use the line token instead of the input border, with stronger hover/selection states. Increase Contrast restores full guide opacity and stronger event borders. Text, event hit areas, layout, and the current-time marker retain their existing treatment.

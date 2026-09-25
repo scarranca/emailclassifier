@@ -2,6 +2,21 @@ import AppKit
 import CoveCore
 import SwiftUI
 
+/// Calendar guides recede behind events; Increase Contrast restores stronger structure.
+private struct CalendarRule: View {
+  var vertical = false
+  var secondary = false
+  @Environment(\.colorSchemeContrast) private var contrast
+
+  var body: some View {
+    Rectangle()
+      .fill(Palette.line.opacity(contrast == .increased ? 1 : secondary ? 0.22 : 0.5))
+      .frame(width: vertical ? 1 : nil, height: vertical ? nil : 1)
+      .allowsHitTesting(false)
+      .accessibilityHidden(true)
+  }
+}
+
 struct CalendarView: View {
   @Bindable var store: AppStore
   @State private var eventDraft: CalendarEventDraft?
@@ -34,7 +49,7 @@ struct CalendarView: View {
           }
         }
       }.padding(30).padding(.top, 22)
-      Divider()
+      CalendarRule()
       HStack {
         Label(
           focus == nil
@@ -56,7 +71,7 @@ struct CalendarView: View {
         }
       }.font(.cove(size: 13)).foregroundStyle(Palette.muted).padding(20).background(
         Palette.surface)
-      Divider()
+      CalendarRule()
       GeometryReader { geometry in
         let agendaWidth = CalendarLayout.agendaWidth(
           preferred: preferredAgendaWidth, available: geometry.size.width)
@@ -86,7 +101,7 @@ struct CalendarView: View {
                   .accessibilityLabel("Select " + day.formatted(date: .complete, time: .omitted))
               }
             }
-            Divider()
+            CalendarRule()
             HStack(spacing: 0) {
               Text("all-day").font(.cove(size: 9)).foregroundStyle(Palette.muted).frame(width: 52)
               ForEach(week, id: \.self) { day in
@@ -103,10 +118,10 @@ struct CalendarView: View {
                     }
                   }
                 }.frame(maxWidth: .infinity, minHeight: 32).padding(4)
-                  .overlay(alignment: .leading) { Palette.line.frame(width: 1) }
+                  .overlay(alignment: .leading) { CalendarRule(vertical: true) }
               }
             }
-            Divider()
+            CalendarRule()
             ScrollViewReader { proxy in
               ScrollView {
                 HStack(alignment: .top, spacing: 0) {
@@ -148,7 +163,7 @@ struct CalendarView: View {
                 }
               }
             }
-            Divider()
+            CalendarRule()
             Text(
               store.calendarConnected && !store.isSample
                 ? "Google Calendar · primary calendar" : "Calendar events stay on this Mac"
@@ -225,7 +240,7 @@ struct CalendarView: View {
               } else {
                 agenda
               }
-              Divider()
+              CalendarRule()
               if !store.calendarConnected && !store.isSample {
                 Button("Connect Google Calendar") { store.showConnections = true }.buttonStyle(
                   SecondaryButton())
@@ -369,10 +384,10 @@ struct CalendarView: View {
             status: event.id == nextEventID ? (event.start <= store.now ? "Now" : "Up next") : nil,
             time: event.allDay == true ? "All day" : timeRange(event.start, event.end)
           ) { select(event, on: store.calendarDay) }
-          if index < dayEvents.count - 1 { Divider() }
+          if index < dayEvents.count - 1 { CalendarRule() }
         }
       }
-      Divider()
+      CalendarRule()
       Text("Make room to focus").font(.cove(size: 15, weight: .medium))
       if let focus {
         Text(timeRange(focus.start, focus.end)).font(.cove(size: 13, weight: .medium))
@@ -487,8 +502,8 @@ struct CalendarDayColumn: View {
         VStack(spacing: 0) {
           ForEach(0..<24) { _ in
             Color.clear.frame(height: CalendarEventLayout.hourHeight)
-              .overlay(alignment: .top) { Palette.line.frame(height: 1) }
-              .overlay { Palette.line.opacity(0.45).frame(height: 0.5) }
+              .overlay(alignment: .top) { CalendarRule() }
+              .overlay { CalendarRule(secondary: true) }
           }
         }
         ForEach(CalendarEventLayout.arrange(events, on: day)) { placement in
@@ -514,7 +529,7 @@ struct CalendarDayColumn: View {
       }
     }
     .background(Palette.canvas)
-    .overlay(alignment: .leading) { Palette.line.frame(width: 1) }
+    .overlay(alignment: .leading) { CalendarRule(vertical: true) }
   }
 }
 
@@ -525,6 +540,7 @@ struct CalendarTimedEvent: View {
   let suggested: Bool
   let action: () -> Void
   @State private var hovered = false
+  @Environment(\.colorSchemeContrast) private var contrast
   private var compact: Bool { height < 48 }
   private var description: String {
     "\(suggested ? "Suggested focus time" : event.title), \(event.start.formatted(date: .omitted, time: .shortened)) to \(event.end.formatted(date: .omitted, time: .shortened))"
@@ -551,7 +567,7 @@ struct CalendarTimedEvent: View {
                   in: RoundedRectangle(cornerRadius: 5))
       .overlay {
         RoundedRectangle(cornerRadius: 5).strokeBorder(
-          selected ? Palette.ink : suggested ? Palette.muted : Palette.inputBorder,
+          selected ? Palette.ink : suggested ? Palette.muted : hovered || contrast == .increased ? Palette.inputBorder : Palette.line,
           style: StrokeStyle(lineWidth: 1, dash: suggested ? [4, 3] : []))
       }
       .contentShape(RoundedRectangle(cornerRadius: 5))
@@ -563,6 +579,7 @@ struct CalendarTimedEvent: View {
 }
 
 struct CalendarAllDayEvent: View {
+  @Environment(\.colorSchemeContrast) private var contrast
   let event: LocalEvent
   let selected: Bool
   let action: () -> Void
@@ -572,7 +589,8 @@ struct CalendarAllDayEvent: View {
         .padding(.horizontal, 8).frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
         .foregroundStyle(selected ? Color.white : Palette.ink)
         .background(selected ? Palette.ink : Palette.sidebar, in: RoundedRectangle(cornerRadius: 5))
-        .overlay { RoundedRectangle(cornerRadius: 5).strokeBorder(Palette.inputBorder, lineWidth: 1) }
+        .overlay { RoundedRectangle(cornerRadius: 5).strokeBorder(
+          selected ? Palette.ink : contrast == .increased ? Palette.inputBorder : Palette.line, lineWidth: 1) }
         .contentShape(RoundedRectangle(cornerRadius: 5))
     }.buttonStyle(.plain).help(event.title + " · All day")
       .accessibilityLabel(event.title + ", all day")
@@ -616,7 +634,7 @@ private struct CalendarAgendaDivider: View {
   var body: some View {
     ZStack {
       Rectangle().fill(hovered || focused ? Palette.sidebar : Palette.canvas)
-      Rectangle().fill(Palette.line).frame(width: 1)
+      CalendarRule(vertical: true)
       RoundedRectangle(cornerRadius: 2)
         .fill(hovered || focused ? Palette.ink : Palette.inputBorder)
         .frame(width: 3, height: 32)
