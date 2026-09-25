@@ -112,6 +112,7 @@ import SwiftUI
   var now = Date()
   var status = ""
   var error: String?
+  var connectionIssue: ConnectionIssue?
   var removedMemory: (index: Int, text: String)?
   var settingsSection = "Settings"
   private var screenBeforeSettings = "mail"
@@ -331,6 +332,7 @@ import SwiftUI
     composeID = nil
     showComposer = false
     showAssistant = false
+    connectionIssue = nil
     folder = "Inbox"
     screen = "mail"
     search = ""
@@ -550,15 +552,17 @@ import SwiftUI
     guard !busy else { return }
     busy = true
     status = label
+    let issueID = connectionIssue?.id
     defer { busy = false }
     do {
       try await operation()
+      connectionRecovered(operation: label, issueID: issueID)
       status = isSample ? "Sample mailbox · changes stay on this Mac" : "Up to date"
     } catch is CancellationError {
       status = "Operation cancelled"
     } catch {
-      self.error = error.localizedDescription
-      status = "Couldn’t finish · retry when ready"
+      reportFailure(error, operation: label)
+      status = connectionIssue == nil ? "Couldn’t finish · retry when ready" : "Connection issue · showing downloaded mail"
     }
   }
   func sync(older: Bool = false) async {
@@ -709,6 +713,7 @@ import SwiftUI
     recordReadChange(id: mail.id, unread: false)
     guard remote else { return }
 
+    let issueID = connectionIssue?.id
     let task = Task { @MainActor [weak self] in
       guard let self else { return }
       defer {
@@ -721,6 +726,7 @@ import SwiftUI
         try Task.checkCancellation()
         guard self.mailboxGeneration == generation else { return }
         try await self.gmail.modify(id: mail.id, token: token, remove: ["UNREAD"])
+        self.connectionRecovered(operation: "Marking email as read…", issueID: issueID)
       } catch {
         guard self.mailboxGeneration == generation,
           let index = self.mails.firstIndex(where: { $0.id == mail.id })
@@ -728,8 +734,8 @@ import SwiftUI
         self.mails[index].labels.insert("UNREAD")
         self.recordReadChange(id: mail.id, unread: true)
         self.persistMessage(self.mails[index])
-        self.error = "Couldn’t mark this email as read in Gmail. Open it again to retry. "
-          + error.localizedDescription
+        self.reportFailure(error, operation: "Marking email as read…",
+          message: "Couldn’t mark this email as read in Gmail. Open it again to retry. " + error.localizedDescription)
       }
     }
     pendingReadTasks[mail.id] = task
@@ -845,7 +851,7 @@ import SwiftUI
         let restored = self.trashCommitting ? self.committingTrashIDs : Set(self.pendingTrashIDs)
         self.queuedTrashIDs.removeAll { restored.contains($0) }
         self.reconcileSelection()
-        if !(error is CancellationError) { self.error = error.localizedDescription }
+        if !(error is CancellationError) { self.reportFailure(error, operation: "Moving to Trash…") }
       }
     }
   }

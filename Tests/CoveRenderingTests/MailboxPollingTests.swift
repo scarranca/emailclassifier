@@ -102,7 +102,8 @@ final class MailboxPollingTests: XCTestCase {
     let (store, database, transport, clock) = try fixture()
     await transport.setOffline(true)
     await store.pollMailbox()
-    XCTAssertNotNil(store.error)
+    XCTAssertNil(store.error, "Offline polling must not open an alert")
+    XCTAssertNotNil(store.connectionIssue)
     XCTAssertNil(store.lastSync)
     XCTAssertEqual(try database.load(String.self, key: "gmailHistoryID"), "100")
 
@@ -116,6 +117,7 @@ final class MailboxPollingTests: XCTestCase {
     await store.pollMailbox()
     let recoveredCount = await transport.historyRequests
     XCTAssertEqual(recoveredCount, 2)
+    XCTAssertNil(store.connectionIssue, "Successful retry clears the tag")
     XCTAssertEqual(store.mails.first?.id, "new-message")
   }
 

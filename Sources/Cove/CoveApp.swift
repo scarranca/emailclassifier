@@ -87,6 +87,12 @@ struct RootView: View {
         WelcomeView(store: store)
       }
     }
+    .safeAreaInset(edge: .bottom, alignment: .leading, spacing: 0) {
+      if store.connectionIssue != nil {
+        ConnectionStatusTag(store: store).padding(.horizontal, 18).padding(.vertical, 8)
+          .frame(maxWidth: .infinity, alignment: .leading).background(Palette.canvas)
+      }
+    }
     .overlay(alignment: .bottom) { MailDeletionToast(store: store).padding(.bottom, 22) }
     .background(MailDeleteShortcut(store: store).frame(width: 0, height: 0))
     .font(.coveBody).tint(Palette.ink).foregroundStyle(Palette.ink).background(Palette.canvas)

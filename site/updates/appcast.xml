@@ -6,6 +6,22 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Cove</title>
         <item>
+            <title>0.1.36</title>
+            <pubDate>Fri, 25 Sep 2026 14:13:23 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>38</sparkle:version>
+            <sparkle:shortVersionString>0.1.36</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>Connection updates without interruptions</h2>
+<ul>
+<li>Temporary connection failures now appear as a small status tag at the bottom-left instead of a blocking popup.</li>
+<li>Click the tag for details, retry a failed mail sync, or dismiss it. Downloaded mail stays available and successful retries clear the matching notice.</li>
+<li>Repeated failures stay quiet. Important warnings, including unconfirmed sends and certificate errors, remain explicit.</li>
+</ul>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.36.dmg" length="16459982" type="application/octet-stream" sparkle:edSignature="hIPfXSMgkV6ZpgVVPjNvz9KvZO6Wpxg0V24LY9xPnNMxLkZ43LEyxYb5fUJebTRVEQDMQO9op6p83K/RrhqRBA=="/>
+        </item>
+        <item>
             <title>0.1.35</title>
             <pubDate>Fri, 25 Sep 2026 12:14:26 -0700</pubDate>
             <link>https://covemail.xyz/beta/</link>
@@ -39,26 +55,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://covemail.xyz/downloads/Cove-0.1.34.dmg" length="16282802" type="application/octet-stream" sparkle:edSignature="YWMFQWvntXwJOSUl2mjQdav0j5nmspD6/3znQ6oPaFJ/zFFdbPO8SiWERGvQ8qSH8DhLN3zQkYAi8/+Musw3Ag=="/>
         </item>
-        <item>
-            <title>0.1.33</title>
-            <pubDate>Thu, 24 Sep 2026 22:29:12 -0700</pubDate>
-            <link>https://covemail.xyz/beta/</link>
-            <sparkle:version>35</sparkle:version>
-            <sparkle:shortVersionString>0.1.33</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>A little head start</h2>
-<ul>
-<li>The redesigned Agent Hub brings decisions, your next meeting, and follow-ups into a clearer daily briefing.</li>
-<li>A dotted, gently moving mail landscape shows seven days of received messages downloaded to Cove, with your agents’ labels below. Motion respects Reduce Motion and pauses when the chart is out of view.</li>
-<li>Review an email or agent draft, prepare a delegation draft, or snooze it for later. Nothing sends automatically.</li>
-<li>Waiting on others surfaces recent sent threads without a reply in downloaded mail. Calendar invitations, weather, contacts, and attachments remain available on Home.</li>
-</ul>
-]]></description>
-            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.33.dmg" length="16179953" type="application/octet-stream" sparkle:edSignature="FGHZfT7bJcl1FwpO4mekoIWElMw4kQtD1mSkVmoGEQE2absvdm8jQHY6qcrk7Y1hx3XSaZbYq2Z/IAkaowJtAw=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: 8fc7hEDxirM7hVeFlopnCA+V7FiOLJOc2EuuXTEvNMMtS8mKPYFpLyvvz7NocO1Injz2E8AbICPkHLxiS1cUBg==
-length: 4515
+edSignature: zkKgmIHSD9CCXM+Q913+Fpeeis1gcsi6Vr1l/6f5HjJJtyuFa9cqXDfqXYNsYcVzI8HlCkR0qlu8JdguNw1OAQ==
+length: 4317
 -->

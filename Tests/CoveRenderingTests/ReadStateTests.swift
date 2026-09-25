@@ -43,10 +43,12 @@ final class ReadStateTests: XCTestCase {
     await store.markViewed(mail)
     XCTAssertTrue(try XCTUnwrap(store.mails.first).isUnread)
     XCTAssertTrue(try XCTUnwrap(database.loadMail().first).isUnread)
-    XCTAssertTrue(store.error?.contains("Open it again to retry") == true)
+    XCTAssertNil(store.error)
+    XCTAssertEqual(store.connectionIssue?.operation, "Marking email as read…")
     await transport.setOffline(false)
     await store.markViewed(mail)
     XCTAssertFalse(try XCTUnwrap(store.mails.first).isUnread)
+    XCTAssertNil(store.connectionIssue)
   }
 
   func testSampleOpeningStaysLocalAndExplicitMarkUnreadIsPreserved() async throws {
