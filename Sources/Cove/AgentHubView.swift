@@ -8,16 +8,14 @@ struct AgentHubView: View {
   @State private var weather: HomeWeatherController
   @State private var showAllFiles = false
   @State private var lastIgnored: String?
+  @State private var showExtras = false
+  @State private var showActivity = false
 
   init(store: AppStore, loadLiveData: Bool = true, weather: HomeWeatherController? = nil) {
     self.store = store
     self.loadLiveData = loadLiveData
     _weather = State(initialValue: weather ?? HomeWeatherController(defaults: loadLiveData ? .standard : UserDefaults(suiteName: "Cove-Weather-Preview-" + UUID().uuidString)!))
   }
-
-  private static let horizon = Bundle.module.url(
-    forResource: "agent-hub-horizon", withExtension: "jpg"
-  ).flatMap { NSImage(contentsOf: $0) }
 
   private var mail: [Mail] {
     store.mails.filter { !store.queuedTrashIDs.contains($0.id) && !$0.labels.contains("TRASH") && !$0.labels.contains("SPAM") }
@@ -27,7 +25,23 @@ struct AgentHubView: View {
       $0.labels.contains("INBOX") && ($0.snoozedUntil ?? .distantPast) <= store.now
     }.sorted { $0.date > $1.date }
   }
-  private var priorities: [Mail] { inbox.filter(\.isPriority) }
+  private var priorities: [Mail] {
+    let pending = Set(store.customAgents.runs.filter { $0.replySuggestion != nil && $0.replyApplied != true }.map(\.mailID))
+    return inbox.filter { $0.isPriority || pending.contains($0.id) }
+  }
+  private var waiting: [Mail] { HomeBriefing.awaitingReplies(mails: mail, accountEmail: store.accountEmail, now: store.now) }
+  private var nextMeeting: LocalEvent? {
+    store.events.filter { $0.end > store.now && $0.ownResponse != "declined" && $0.allDay != true }
+      .sorted { $0.start < $1.start }.first
+  }
+  private var tide: MailTide { MailTide(mails: mail, now: store.now) }
+  private var tideLabels: [(name: String, count: Int)] {
+    store.agentMailCategories.compactMap { category in
+      guard let label = category.label else { return nil }
+      let count = tide.received.filter { $0.labels.contains(label.id) }.count
+      return count > 0 ? (name: category.name, count: count) : nil
+    }.sorted { $0.count > $1.count }
+  }
   private var files: [HubFile] {
     mail.sorted { $0.date > $1.date }.flatMap { message in
       message.availableAttachments.map { HubFile(message: message, attachment: $0) }
@@ -41,12 +55,12 @@ struct AgentHubView: View {
     return "A little head start."
   }
   private var briefing: String {
-    if inbox.isEmpty { return "Your next clear moment starts here. Sync Gmail to catch up." }
-    if priorities.isEmpty {
-      return "No priority messages in your downloaded inbox. A little more room to focus."
-    }
-    return
-      "\(priorities.count) \(priorities.count == 1 ? "message needs" : "messages need") your attention. Start with what matters."
+    let attention = priorities.isEmpty ? "A little more room to focus." : "\(priorities.count) \(priorities.count == 1 ? "decision" : "decisions") to move things forward."
+    guard let event = nextMeeting else { return attention + "\nYour next clear moment starts here." }
+    let time = Calendar.current.isDate(event.start, inSameDayAs: store.now)
+      ? event.start.formatted(date: .omitted, time: .shortened)
+      : event.start.formatted(.dateTime.weekday(.abbreviated).hour().minute())
+    return attention + "\n\(event.start <= store.now ? "Your meeting is underway." : "Your next meeting is at \(time).")"
   }
 
   var body: some View {
@@ -56,23 +70,32 @@ struct AgentHubView: View {
         Divider()
         ScrollView {
           VStack(alignment: .leading, spacing: 25) {
-            briefingBanner(compact: geometry.size.width < 760)
+            briefingBanner(compact: geometry.size.width < 960, viewportHeight: geometry.size.height - 62)
             if geometry.size.width >= 900 {
               hubColumns(width: geometry.size.width)
             } else {
-              HomeCalendarView(store: store)
               prioritySection
-              HomeWeatherView(weather: weather)
-              reconnectSection
-              recentSection
-              activitySection
+              nextMeetingSection
+              waitingSection
             }
+            invitationSection
+            activitySummary
+            DisclosureGroup(isExpanded: $showExtras) {
+              VStack(alignment: .leading, spacing: 28) {
+                HomeCalendarView(store: store)
+                HomeWeatherView(weather: weather)
+                reconnectSection
+                recentSection
+              }.padding(.top, 20)
+            } label: {
+              Text("Your day & people").font(HomeType.action)
+            }.tint(Palette.body)
             Label(
               "A little help, never the final say. You approve every send.",
               systemImage: "checkmark.shield"
             ).font(.coveMetadata).foregroundStyle(Palette.muted)
           }.padding(.horizontal, geometry.size.width < 760 ? 24 : 34).padding(.vertical, 26)
-        }
+        }.coordinateSpace(name: "hub-scroll")
       }.background(Palette.canvas).foregroundStyle(Palette.ink)
         .onChange(of: store.accountEmail) { _, _ in lastIgnored = nil }
         .task(id: "\(scenePhase)-\(store.calendarConnected)-\(store.accountEmail)") {
@@ -95,20 +118,12 @@ struct AgentHubView: View {
   private func hubColumns(width: CGFloat) -> some View {
     let sidebarWidth = min(350, width * 0.30)
     return HStack(alignment: .top, spacing: 28) {
-      VStack(alignment: .leading, spacing: 28) {
-        HomeCalendarView(store: store)
-        prioritySection
-        recentSection
-      }.frame(maxWidth: .infinity, alignment: .leading)
-      VStack(alignment: .leading, spacing: 28) {
-        HomeWeatherView(weather: weather)
-        reconnectSection
-        activitySection
-      }.frame(width: sidebarWidth, alignment: .leading)
-    }
-    .overlay(alignment: .trailing) {
-      Rectangle().fill(Palette.line).frame(width: 1)
-        .padding(.trailing, sidebarWidth + 14).allowsHitTesting(false)
+      prioritySection.frame(maxWidth: .infinity, alignment: .leading)
+      VStack(alignment: .leading, spacing: 26) {
+        nextMeetingSection
+        waitingSection
+      }.padding(.leading, 25).frame(width: sidebarWidth, alignment: .leading)
+        .overlay(alignment: .leading) { Rectangle().fill(Palette.line).frame(width: 1) }
     }
   }
 
@@ -121,45 +136,50 @@ struct AgentHubView: View {
       Spacer()
       Text(store.now, format: .dateTime.weekday(.wide).month(.wide).day())
         .font(.cove(size: 12)).foregroundStyle(Palette.muted)
+      Button { store.showConnections = true } label: {
+        Image(systemName: "gearshape").font(.system(size: 16)).frame(width: 28, height: 28)
+      }.buttonStyle(.plain).help("Settings").accessibilityLabel("Settings")
     }.padding(.horizontal, 34).frame(height: 62)
   }
 
-  private func briefingBanner(compact: Bool) -> some View {
-    HStack(spacing: 24) {
-      VStack(alignment: .leading, spacing: 12) {
-        Text(greeting).font(.cove(size: compact ? 25 : 29, weight: .medium))
-          .foregroundStyle(.white).fixedSize(horizontal: false, vertical: true)
-        Text(briefing).font(.cove(size: 13)).foregroundStyle(Color(white: 0.88))
-          .lineSpacing(5).fixedSize(horizontal: false, vertical: true)
-      }.frame(maxWidth: .infinity, alignment: .leading)
-      Button {
-        store.showAssistant = true
-      } label: {
-        Label("Ask Cove", systemImage: "sparkles")
-      }.buttonStyle(SecondaryButton()).fixedSize()
-    }.padding(.horizontal, 26).padding(.vertical, 24).frame(minHeight: 158)
-      .background {
-        GeometryReader { geometry in
-          ZStack {
-            Color(red: 0.114, green: 0.125, blue: 0.165)
-            if let horizon = Self.horizon {
-              Image(nsImage: horizon).resizable().scaledToFill()
-                .frame(width: geometry.size.width, height: geometry.size.height).clipped()
-                .opacity(0.42).accessibilityHidden(true)
-            }
-          }
+  private func briefingBanner(compact: Bool, viewportHeight: CGFloat) -> some View {
+    let layout = compact ? AnyLayout(VStackLayout(alignment: .leading, spacing: 26)) : AnyLayout(HStackLayout(spacing: 32))
+    return layout {
+      VStack(alignment: .leading, spacing: 15) {
+        Text(greeting).font(.cove(size: 27, weight: .medium))
+          .foregroundStyle(Color(white: 0.96)).fixedSize(horizontal: false, vertical: true)
+        Text(briefing).font(.cove(size: 13)).foregroundStyle(Color(white: 0.84))
+          .lineSpacing(6).fixedSize(horizontal: false, vertical: true)
+        HStack(spacing: 8) {
+          briefingTag("\(priorities.count) \(priorities.count == 1 ? "decision" : "decisions")")
+          if !store.pendingInvitations.isEmpty { briefingTag("\(store.pendingInvitations.count) \(store.pendingInvitations.count == 1 ? "invitation" : "invitations")", warm: true) }
+          briefingTag("\(waiting.count) waiting")
         }
-      }.clipShape(RoundedRectangle(cornerRadius: 10))
+        Button { store.showAssistant = true } label: {
+          Label("Ask Cove", systemImage: "sparkles")
+        }.buttonStyle(SecondaryButton(compact: true)).frame(height: 36)
+      }.frame(maxWidth: compact ? .infinity : 420, alignment: .leading)
+      MailTideView(tide: tide, labels: tideLabels, viewportHeight: viewportHeight)
+        .frame(maxWidth: .infinity)
+    }.padding(26).frame(minHeight: 290)
+      .background(Color(red: 0.114, green: 0.125, blue: 0.165), in: RoundedRectangle(cornerRadius: 10))
+  }
+
+  private func briefingTag(_ text: String, warm: Bool = false) -> some View {
+    Text(text).font(.cove(size: 11, weight: .medium))
+      .foregroundStyle(warm ? Color(red: 0.94, green: 0.78, blue: 0.64) : Color(white: 0.87))
+      .padding(.horizontal, 9).padding(.vertical, 6)
+      .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 5))
   }
 
   private var prioritySection: some View {
-    VStack(alignment: .leading, spacing: 15) {
+    VStack(alignment: .leading, spacing: 0) {
       HStack {
-        Text("Worth your attention").font(HomeType.primarySection)
+        Text("Needs your decision").font(HomeType.primarySection)
         Spacer()
         Text("\(priorities.count) \(priorities.count == 1 ? "message" : "messages")")
           .font(.coveMetadata).foregroundStyle(Palette.muted)
-      }
+      }.padding(.bottom, 8)
       if priorities.isEmpty {
         emptyMessage(
           title: inbox.isEmpty ? "A clear place to begin" : "Nothing urgent has been flagged",
@@ -187,45 +207,154 @@ struct AgentHubView: View {
   }
 
   private func priorityRow(_ message: Mail) -> some View {
-    VStack(spacing: 0) {
-      Button {
-        open(message)
-      } label: {
-        VStack(alignment: .leading, spacing: 10) {
-          HStack(spacing: 8) {
-            CoveAvatar(initials: message.initials, size: 26)
-            Text(message.sender).font(HomeType.action).lineLimit(1)
-            Spacer(minLength: 8)
+    VStack(alignment: .leading, spacing: 11) {
+      Button { open(message) } label: {
+        VStack(alignment: .leading, spacing: 11) {
+          HStack(alignment: .firstTextBaseline, spacing: 14) {
+            Text(message.subject.isEmpty ? "No subject" : message.subject)
+              .font(.cove(size: 15, weight: .semibold)).lineLimit(2)
+              .frame(maxWidth: .infinity, alignment: .leading)
             Text(message.date, format: .dateTime.month(.abbreviated).day())
-              .font(.coveMetadata).foregroundStyle(Palette.muted).fixedSize()
+              .font(.coveMetadata).foregroundStyle(Palette.body).fixedSize()
           }
-          HStack(alignment: .top, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-              Text(message.subject.isEmpty ? "No subject" : message.subject)
-                .font(HomeType.itemTitle).lineLimit(2)
-              Text(message.decision?.excerpt ?? String(message.body.prefix(160)))
-                .font(HomeType.compactBody).foregroundStyle(Palette.body).lineSpacing(3).lineLimit(2)
-              if message.decision?.excerpt != nil {
-                Text(store.isSample ? "Sample source excerpt" : "From the email · selected by Jev")
-                  .font(HomeType.metadata).foregroundStyle(Palette.muted)
-              }
-              if !message.draft.isEmpty {
-                Label("Draft ready", systemImage: "square.and.pencil")
-                  .font(.coveMetadata).foregroundStyle(Palette.body)
-              }
-            }.frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.right").font(.cove(size: 11, weight: .medium))
-              .foregroundStyle(Palette.muted).padding(.top, 3).accessibilityHidden(true)
-          }
-        }.multilineTextAlignment(.leading).padding(.vertical, 14).padding(.horizontal, 8)
-          .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-      }.buttonStyle(HubEmailButtonStyle())
-        .accessibilityLabel("Open email from \(message.sender): \(message.subject)")
-        .help("Open email")
-      MailQuickActions(store: store, mail: message)
-        .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 8).padding(.bottom, 12)
-      Divider()
+          Text(message.decision?.excerpt ?? String(message.body.prefix(160)))
+            .font(HomeType.compactBody).foregroundStyle(Palette.body).lineSpacing(5).lineLimit(2)
+          HStack(spacing: 8) {
+            Image(systemName: "envelope")
+            Text("\(message.sender) · \(message.date.formatted(date: .omitted, time: .shortened))").lineLimit(1)
+            if let file = message.availableAttachments.first {
+              Text("·")
+              Image(systemName: "paperclip")
+              Text(file.filename).lineLimit(1)
+            }
+          }.font(.coveMetadata).foregroundStyle(Palette.body)
+        }.padding(.vertical, 3).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+      }.buttonStyle(HubEmailButtonStyle()).accessibilityLabel("Open email from \(message.sender): \(message.subject)")
+      HStack(spacing: 12) {
+        Button {
+          store.reviewHomeDecision(message)
+        } label: {
+          Label(hasDraft(message) ? "Review draft" : "Review email", systemImage: "square.and.pencil")
+        }.buttonStyle(PrimaryButton(compact: true))
+        Button { store.prepareHomeDelegation(message) } label: {
+          Label("Delegate", systemImage: "person.badge.plus")
+        }.buttonStyle(.plain).font(HomeType.compactBody).disabled(store.busy)
+          .help("Prepare a forwarding draft; choose a recipient and review before sending")
+        Menu {
+          Button("Tomorrow morning") { store.snooze(message, until: tomorrowMorning) }
+          Button("In a week") { store.snooze(message, until: Calendar.current.date(byAdding: .day, value: 7, to: store.now)) }
+        } label: { Label("Later", systemImage: "clock") }
+          .menuStyle(.borderlessButton).fixedSize().font(HomeType.compactBody).disabled(store.busy)
+        Spacer(minLength: 0)
+        Menu {
+          Button(message.isStarred ? "Remove follow-up flag" : "Flag for follow-up") { Task { await store.toggleFlag(message) } }
+          Button("Archive") { Task { await store.archive(message) } }
+          Button("Move to Trash") { store.queueTrash(message) }
+        } label: { Image(systemName: "ellipsis").frame(width: 24, height: 24) }
+          .menuStyle(.borderlessButton).fixedSize().disabled(store.busy).accessibilityLabel("More actions for \(message.subject)")
+      }.foregroundStyle(Palette.body)
+    }.padding(.vertical, 22).overlay(alignment: .bottom) { Rectangle().fill(Palette.line).frame(height: 1) }
+  }
+
+  private func hasDraft(_ message: Mail) -> Bool {
+    !message.draft.isEmpty || store.customAgents.runs.contains { $0.mailID == message.id && $0.replySuggestion != nil && $0.replyApplied != true }
+  }
+  private var tomorrowMorning: Date {
+    let day = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: store.now)) ?? store.now
+    return Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: day) ?? day
+  }
+  private var nextMeetingSection: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      HStack(alignment: .firstTextBaseline) {
+        Text("Next meeting").font(HomeType.primarySection)
+        Spacer(minLength: 4)
+        if let event = nextMeeting {
+          Text(event.start, format: .dateTime.hour().minute()).font(.coveMetadata).foregroundStyle(Palette.body)
+        }
+      }
+      if let event = nextMeeting {
+        Text(event.title).font(.cove(size: 15, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
+        Text(event.start.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()) + " · \(max(1, Int(event.end.timeIntervalSince(event.start) / 60))) min")
+          .font(.coveMetadata).foregroundStyle(Palette.body)
+        let people = (event.attendees ?? []).filter { $0.isSelf != true && $0.response != "declined" }.compactMap { $0.name ?? $0.email }
+        if !people.isEmpty { Text("With " + people.prefix(3).joined(separator: ", ")).font(HomeType.compactBody).foregroundStyle(Palette.body).lineLimit(2) }
+        if let details = event.details, !details.isEmpty {
+          Text(details).font(HomeType.compactBody).foregroundStyle(Palette.body).lineSpacing(5).lineLimit(4)
+            .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+            .background(Palette.surface, in: RoundedRectangle(cornerRadius: 6))
+        } else if let location = event.location, !location.isEmpty {
+          Label(location, systemImage: "mappin").font(HomeType.compactBody).foregroundStyle(Palette.body)
+        }
+        Button { openEvent(event) } label: { Label("Open meeting details", systemImage: "calendar") }
+          .buttonStyle(SecondaryButton(compact: true))
+      } else {
+        Text(store.calendarConnected || store.isSample ? "No upcoming meetings in your saved calendar." : "Bring your next meeting into focus.")
+          .font(HomeType.compactBody).foregroundStyle(Palette.body).lineSpacing(5)
+        Button(store.calendarConnected || store.isSample ? "Open calendar" : "Connect Calendar") {
+          if store.calendarConnected || store.isSample { store.screen = "calendar" } else { store.showConnections = true }
+        }.buttonStyle(SecondaryButton(compact: true))
+      }
+      if store.calendarSyncing { ProgressView().controlSize(.small).accessibilityLabel("Refreshing calendar") }
+      if let error = store.calendarSyncError { Text("Saved schedule · " + error).font(.coveMetadata).foregroundStyle(Palette.danger) }
     }
+  }
+  private func openEvent(_ event: LocalEvent) {
+    store.selectCalendarDay(event.start); store.calendarEventID = event.id
+    store.revealCalendar(for: event); store.screen = "calendar"
+  }
+  private var waitingSection: some View {
+    VStack(alignment: .leading, spacing: 17) {
+      Text("Waiting on others").font(HomeType.supportingSection)
+      if waiting.isEmpty {
+        Text("No unanswered sent threads found in downloaded mail.").font(HomeType.compactBody).foregroundStyle(Palette.body).lineSpacing(5)
+      }
+      ForEach(Array(waiting.prefix(2))) { message in
+        VStack(alignment: .leading, spacing: 8) {
+          HStack(alignment: .firstTextBaseline) {
+            Text(HomeBriefing.recipientNames(message)).font(HomeType.action).lineLimit(1)
+            Spacer(minLength: 4)
+            Text("Sent " + message.date.formatted(.dateTime.month(.abbreviated).day())).font(.coveMetadata).foregroundStyle(Palette.muted).lineLimit(1)
+          }
+          Button(message.subject.isEmpty ? "No subject" : message.subject) { open(message) }
+            .buttonStyle(.plain).font(HomeType.compactBody).lineLimit(2)
+          Button {
+            store.prepareHomeFollowUp(message)
+          } label: { Label("Draft follow-up", systemImage: "arrowshape.turn.up.left") }
+            .buttonStyle(.plain).font(HomeType.action).disabled(store.busy)
+        }
+      }
+      if !waiting.isEmpty { Text("No reply in downloaded mail · last 30 days").font(.cove(size: 10)).foregroundStyle(Palette.muted) }
+    }.padding(.top, 22).overlay(alignment: .top) { Rectangle().fill(Palette.line).frame(height: 1) }
+  }
+  @ViewBuilder private var invitationSection: some View {
+    if !store.pendingInvitations.isEmpty {
+      DisclosureGroup("Invitations · \(store.pendingInvitations.count) pending") {
+        ForEach(Array(store.pendingInvitations.prefix(3))) { event in
+          VStack(alignment: .leading, spacing: 10) {
+            Button(event.title) { openEvent(event) }.buttonStyle(.plain).font(HomeType.itemTitle)
+            Text(event.start, format: .dateTime.month(.abbreviated).day().hour().minute()).font(.coveMetadata)
+            InvitationResponseButtons(store: store, event: event)
+          }.padding(.vertical, 12)
+        }
+        if let error = store.invitationError { Text(error).font(.coveMetadata).foregroundStyle(Palette.danger) }
+        if let notice = store.invitationNotice { Text(notice).font(.coveMetadata) }
+        Button("View all invitations") { showExtras = true }.buttonStyle(.plain).font(HomeType.action)
+      }.font(HomeType.action).tint(Palette.body)
+    }
+  }
+  private var activitySummary: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      Button { showActivity.toggle() } label: {
+        HStack(spacing: 10) {
+          Image(systemName: "checkmark.circle")
+          Text("Cove organized \(mail.filter { $0.decision != nil }.count) \(mail.filter { $0.decision != nil }.count == 1 ? "email" : "emails") · \(store.customAgents.runs.filter { $0.replySuggestion != nil && $0.replyApplied != true }.count) agent drafts ready")
+            .frame(maxWidth: .infinity, alignment: .leading)
+          Text(showActivity ? "Hide activity" : "View activity")
+          Image(systemName: showActivity ? "chevron.down" : "chevron.right")
+        }.font(HomeType.compactBody).foregroundStyle(Palette.body).padding(.vertical, 16).contentShape(Rectangle())
+      }.buttonStyle(.plain)
+      if showActivity { activitySection.padding(.vertical, 16) }
+    }.overlay(alignment: .top) { Rectangle().fill(Palette.line).frame(height: 1) }
   }
 
   private var reconnectSection: some View {
@@ -396,19 +525,8 @@ struct AgentHubView: View {
     }.padding(.vertical, 20)
   }
 
-  private func open(_ message: Mail) {
-    store.search = ""
-    let folder =
-      message.labels.contains("DRAFT")
-      ? "Drafts"
-      : (message.snoozedUntil ?? .distantPast) > store.now
-        ? "Snoozed"
-        : message.labels.contains("INBOX")
-          ? "Inbox"
-          : message.labels.contains("SENT") ? "Sent" : "Archive"
-    store.chooseFolder(folder)
-    store.select(message)
-  }
+  private func open(_ message: Mail) { store.openHomeMail(message) }
+
 }
 
 private struct HubFile: Identifiable {

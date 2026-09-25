@@ -6,6 +6,23 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Cove</title>
         <item>
+            <title>0.1.33</title>
+            <pubDate>Thu, 24 Sep 2026 22:29:12 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>35</sparkle:version>
+            <sparkle:shortVersionString>0.1.33</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>A little head start</h2>
+<ul>
+<li>The redesigned Agent Hub brings decisions, your next meeting, and follow-ups into a clearer daily briefing.</li>
+<li>A dotted, gently moving mail landscape shows seven days of received messages downloaded to Cove, with your agents’ labels below. Motion respects Reduce Motion and pauses when the chart is out of view.</li>
+<li>Review an email or agent draft, prepare a delegation draft, or snooze it for later. Nothing sends automatically.</li>
+<li>Waiting on others surfaces recent sent threads without a reply in downloaded mail. Calendar invitations, weather, contacts, and attachments remain available on Home.</li>
+</ul>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.33.dmg" length="16179953" type="application/octet-stream" sparkle:edSignature="FGHZfT7bJcl1FwpO4mekoIWElMw4kQtD1mSkVmoGEQE2absvdm8jQHY6qcrk7Y1hx3XSaZbYq2Z/IAkaowJtAw=="/>
+        </item>
+        <item>
             <title>0.1.32</title>
             <pubDate>Thu, 24 Sep 2026 21:25:13 -0700</pubDate>
             <link>https://covemail.xyz/beta/</link>
@@ -39,27 +56,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://covemail.xyz/downloads/Cove-0.1.31.dmg" length="15876819" type="application/octet-stream" sparkle:edSignature="EYFvlfMMfPJLxz8zVkuMrCkDrLxVWbjfTApxP8v4XnCzFwyd2VOna8xw0SUhBFRNE76jlFDmuRqGBaOQawH0Dw=="/>
         </item>
-        <item>
-            <title>0.1.30</title>
-            <pubDate>Thu, 24 Sep 2026 20:51:04 -0700</pubDate>
-            <link>https://covemail.xyz/beta/</link>
-            <sparkle:version>32</sparkle:version>
-            <sparkle:shortVersionString>0.1.30</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>Your labels and follow-ups, together</h2>
-<ul>
-<li>Browse Gmail labels in Cove, including labels applied by your agents. Label views include inbox and archived mail, with search, unread filtering, sorting, and older messages loaded from Gmail.</li>
-<li>Add or remove an email’s labels in the reader. When a Cove agent applied a label, the reader shows which agent did it.</li>
-<li>Flag emails for follow-up from the list, reader, or Home. These flags sync with Gmail’s stars and appear in the Flagged view.</li>
-<li>Jev’s saved assessments now appear as Needs action, Time-sensitive, and Review category badges, with dedicated sidebar views. These assessments remain separate from your manual follow-up flags.</li>
-</ul>
-<p>Jev flags and displayed counts reflect downloaded mail. Open a label and load older mail to browse more of its messages.</p>
-]]></description>
-            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.30.dmg" length="15805542" type="application/octet-stream" sparkle:edSignature="wvY3EulVZ3lCyXTE8nL5JRzG2LCoBOiE5VUHYZ2wOPioYcZXDHJgA44Z8t3gMeYV3KsOLooswJt21Qqg1BZTBA=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: 1oTdWrktSxoIk8pbaz0/0Gx29ns2LcVSVvSEXwsjbypQAMpQGWzZLbB2k/Am5VQiuokMxIbwCjyTzQNIfE+0Dg==
-length: 4719
+edSignature: ouL22GsPJhK+dJlkzJcfKBVtxUbOi6t+MzFT+rKqWdrCfAn/xWC8HdV4wrJdWJTakxLEES6limaype0pi9iRDg==
+length: 4526
 -->

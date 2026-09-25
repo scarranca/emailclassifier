@@ -163,7 +163,13 @@ struct Sidebar: View {
       }.buttonStyle(PrimaryButton())
       ScrollView {
         VStack(spacing: 3) {
-          if store.screen == "calendar" {
+          if store.screen == "home" {
+            nav("Agent Hub", icon: "sparkles", selected: true) {}
+            nav("Mail", icon: "tray", selected: false) { store.chooseFolder("Inbox") }
+            nav("Calendar", icon: "calendar", selected: false) { store.screen = "calendar" }
+            nav("Contacts", icon: "person.crop.rectangle", selected: false) { store.screen = "contacts" }
+            nav("Agents", icon: "sparkles", selected: false) { store.screen = "agents" }
+          } else if store.screen == "calendar" {
             nav("Home", icon: "house", selected: false) { store.screen = "home" }
             nav("Mail", icon: "tray", selected: false) { store.chooseFolder("Inbox") }
             nav("Calendar", icon: "calendar", selected: true) {}
@@ -216,10 +222,15 @@ struct Sidebar: View {
             store.busy
               ? store.status : "\(store.customAgents.agents.filter { $0.status == .active }.count) active · \(store.customAgents.agents.count) custom agents"
           ).font(.cove(size: 11)).foregroundStyle(Palette.body).lineLimit(2)
+          if store.screen == "home", let lastSync = store.lastSync {
+            Text("Last checked \(lastSync.formatted(.relative(presentation: .named)))")
+              .font(.cove(size: 10)).foregroundStyle(Palette.muted).lineLimit(1)
+          }
         }.frame(maxWidth: .infinity, alignment: .leading).padding(12).background(
           RoundedRectangle(cornerRadius: 9).stroke(Palette.line))
       }.buttonStyle(.plain)
       }
+      if store.screen != "home" {
       Button {
         store.screen = "integrations"
       } label: {
@@ -231,6 +242,7 @@ struct Sidebar: View {
       } label: {
         Label("Settings", systemImage: "gearshape").font(.cove(size: 12))
       }.buttonStyle(.plain).foregroundStyle(Palette.body)
+      }
     }.padding(.horizontal, 18).padding(.bottom, 20).background(Palette.sidebar)
   }
   private var contactNavigation: some View {
