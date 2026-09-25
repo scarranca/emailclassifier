@@ -9,6 +9,8 @@ struct AssistantView: View {
   @FocusState private var composerFocused: Bool
   @State private var query = ""
   @State private var eventReview: AssistantEventReview?
+  @State private var replyReview: AssistantReplyReview?
+  @State private var expandedSources = Set<UUID>()
 
   @State private var exchanges: [ChatExchange] = []
   @State private var contextID: String?
@@ -59,8 +61,8 @@ struct AssistantView: View {
       composer
     }
     .frame(
-      width: min(752, max(1, availableSize.width - 48)),
-      height: min(800, max(1, availableSize.height - 48))
+      width: min(800, max(1, availableSize.width - 48)),
+      height: min(896, max(1, availableSize.height - 48))
     )
     .background(Palette.canvas)
     .font(.coveBody).foregroundStyle(Palette.ink)
@@ -81,7 +83,19 @@ struct AssistantView: View {
     .onChange(of: store.accountEmail) { _, _ in
       request?.cancel()
       eventReview = nil
+      replyReview = nil
       exchanges = []
+    }
+    .sheet(item: $replyReview) { review in
+      AIWritingSheet(context: review.context, initialText: review.mail.draft, onInsert: { value in
+        guard store.entered, store.accountEmail == review.account,
+          store.mails.contains(where: { $0.id == review.mail.id }) else { return }
+        store.saveReply(id: review.mail.id, text: value)
+        replyReview = nil
+        openSource(review.mail)
+      }, onConfigure: { store.screen = "integrations"; dismiss() }, store: store,
+        initialInstruction: "Draft a reply to this email. Consider the earlier recommendation, but verify it against the email. Do not invent commitments. Use the language of my original question: \(review.question)",
+        recommendationContext: review.recommendation)
     }
     .sheet(item: $eventReview) { review in
       CalendarEventEditor(store: store, draft: review.draft, reviewingProposal: true) { saved in
@@ -111,6 +125,7 @@ struct AssistantView: View {
           Divider()
           Button("New conversation") {
             exchanges = []
+            expandedSources = []
             query = ""
             actionNotice = nil
             gmailQuery = ""
@@ -136,7 +151,7 @@ struct AssistantView: View {
   private var conversation: some View {
     ScrollViewReader { proxy in
       ScrollView {
-        VStack(alignment: .leading, spacing: 28) {
+        VStack(alignment: .leading, spacing: 22) {
           if let mail = context {
             Button {
               choosingContext = true
@@ -223,19 +238,27 @@ struct AssistantView: View {
   }
 
   private func exchangeView(_ exchange: ChatExchange) -> some View {
-    VStack(alignment: .leading, spacing: 28) {
+    VStack(alignment: .leading, spacing: 22) {
       HStack {
         Spacer(minLength: 32)
         Text(exchange.question).font(.cove(size: 15)).lineSpacing(6)
-          .padding(.horizontal, 20).padding(.vertical, 16)
+          .padding(.horizontal, 14).padding(.vertical, 10)
           .frame(maxWidth: 464, alignment: .leading)
           .background(Palette.summary, in: RoundedRectangle(cornerRadius: 10))
           .textSelection(.enabled)
       }
-      VStack(alignment: .leading, spacing: 22) {
+      VStack(alignment: .leading, spacing: 20) {
         if let answer = exchange.answer {
           if let agenda = exchange.agenda { AssistantAgendaView(agenda: agenda) }
-          else { ChatMarkdown(answer) }
+          else if let response = exchange.response {
+            AssistantResponseView(response: response, mails: exchange.passages.map(\.mail), canReply: !store.busy && !working,
+              open: openSource, draft: { mail, recommendation in
+                let comparisonSources = Set(exchange.response?.primary?.comparison.map(\.source) ?? [])
+                let relatedIDs = exchange.passages.enumerated().filter { comparisonSources.contains($0.offset + 1) }.map { $0.element.mail.id }
+                replyReview = AssistantReplyReview(sourceID: mail.id, recommendation: recommendation, question: exchange.question, relatedIDs: relatedIDs, store: store)
+                if replyReview == nil { actionNotice = "This email is no longer available. Search for it again." }
+              })
+          } else { ChatMarkdown(answer) }
           if let proposal = exchange.eventProposal, !exchange.eventCreated {
             AssistantEventCard(proposal: proposal, created: exchange.eventCreated) {
               var draft = CalendarEventDraft(title: proposal.title, start: proposal.start, end: proposal.end)
@@ -243,23 +266,16 @@ struct AssistantView: View {
               eventReview = AssistantEventReview(exchangeID: exchange.id, draft: draft)
             }
           }
-          if let first = exchange.passages.first {
-            sourcePassage(first.text, mail: first.mail)
-            sourceActions(first.mail)
-            if exchange.passages.count > 1 {
-              DisclosureGroup("View \(exchange.passages.count - 1) more source\(exchange.passages.count == 2 ? "" : "s")") {
-                VStack(alignment: .leading, spacing: 24) {
-                  ForEach(Array(exchange.passages.dropFirst())) { passage in
-                    sourcePassage(passage.text, mail: passage.mail)
-                    sourceActions(passage.mail)
-                  }
-                }.padding(.top, 16)
-              }.font(.cove(size: 12)).tint(Palette.body)
-            }
-          } else if !exchange.isCalendar, let mail = exchange.mail {
-            sourceActions(mail)
-          }
           responseFeedback(exchange, answer: answer)
+          if expandedSources.contains(exchange.id), !exchange.passages.isEmpty {
+            VStack(alignment: .leading, spacing: 20) {
+              ForEach(exchange.passages) { passage in
+                Divider()
+                sourcePassage(passage.text, mail: passage.mail)
+                sourceActions(passage.mail)
+              }
+            }
+          }
         } else if let error = exchange.error {
           VStack(alignment: .leading, spacing: 10) {
             Text(exchange.cancelled ? "Response stopped" : "Couldn’t complete this request")
@@ -286,14 +302,38 @@ struct AssistantView: View {
               Palette.muted)
           }.padding(.vertical, 10)
         }
-      }
+      }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.line, lineWidth: 1))
     }
   }
 
   private func responseFeedback(_ exchange: ChatExchange, answer: String) -> some View {
     HStack(spacing: 14) {
-      Text(exchange.groundingLabel).font(.cove(size: 12)).foregroundStyle(Palette.body)
-        .help(exchange.source ?? "Original email evidence")
+      if !exchange.passages.isEmpty {
+        Button {
+          if expandedSources.contains(exchange.id) { expandedSources.remove(exchange.id) }
+          else { expandedSources.insert(exchange.id) }
+        } label: {
+          HStack(spacing: 6) {
+            Image(systemName: "text.magnifyingglass")
+            Text(expandedSources.contains(exchange.id) ? "Hide sources" : "View sources")
+            Image(systemName: expandedSources.contains(exchange.id) ? "chevron.up" : "chevron.down")
+          }.font(.cove(size: 12))
+        }.buttonStyle(.plain).foregroundStyle(Palette.body)
+          .accessibilityValue(expandedSources.contains(exchange.id) ? "Expanded" : "Collapsed")
+          .help(exchange.source ?? exchange.groundingLabel)
+      } else {
+        Text(exchange.groundingLabel).font(.cove(size: 12)).foregroundStyle(Palette.body)
+      }
+      Spacer(minLength: 8)
+      Button {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(answer, forType: .string)
+        actionNotice = "Answer copied."
+      } label: {
+        Image(systemName: "doc.on.doc").font(.cove(size: 14)).frame(width: 24, height: 28)
+      }.buttonStyle(.plain).foregroundStyle(Palette.body).help("Copy answer").accessibilityLabel("Copy answer")
       ForEach(AssistantFeedback.allCases, id: \.self) { feedback in
         Button {
           guard let index = exchanges.firstIndex(where: { $0.id == exchange.id }) else { return }
@@ -307,20 +347,7 @@ struct AssistantView: View {
           .accessibilityValue(exchange.feedback == feedback ? "Selected" : "Not selected")
           .help("Mark \(feedback == .helpful ? "helpful" : "not helpful") for this conversation only")
       }
-      Menu {
-        Button("Copy answer") {
-          NSPasteboard.general.clearContents()
-          NSPasteboard.general.setString(
-            ([answer] + exchange.passages.map { "\($0.mail.sender) · \($0.mail.subject)\n\($0.text)" }).joined(separator: "\n\n"),
-            forType: .string)
-          actionNotice = "Answer copied."
-        }
-        Divider()
-        Text(exchange.source ?? "Original email evidence")
-      } label: {
-        Image(systemName: "ellipsis").font(.cove(size: 14)).frame(width: 24, height: 28)
-      }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-        .help("Copy answer and view source details").accessibilityLabel("Answer options")
+
     }
   }
 
@@ -392,7 +419,7 @@ struct AssistantView: View {
 
   private var composer: some View {
     VStack(spacing: 12) {
-      VStack(alignment: .leading, spacing: 26) {
+      VStack(alignment: .leading, spacing: 20) {
         TextField(
           "Ask Cove…", text: $query,
           prompt: Text(exchanges.isEmpty
@@ -562,7 +589,10 @@ struct AssistantView: View {
   }
 
   private func openSource(_ mail: Mail) {
-    guard let current = store.mails.first(where: { $0.id == mail.id }) else { return }
+    guard let current = store.mails.first(where: { $0.id == mail.id }) else {
+      actionNotice = "This email is no longer available. Search for it again."
+      return
+    }
     store.search = ""
     let folder =
       current.labels.contains("DRAFT")
@@ -602,6 +632,7 @@ struct AssistantView: View {
         let answer: String
         var source: String?
         var passages: [MailPassage] = []
+        var response: AssistantResponse?
         if let mailboxQuestion {
           let reply = try await store.mailboxAnswer(mailboxQuestion)
           answer = reply.text
@@ -682,9 +713,11 @@ struct AssistantView: View {
             }
             coverage = "Relevant downloaded mail"
           }
-          let prompt = try AIPrompt(intent: .answer, instruction: question, mails: candidates,
+          let prompt = try AIPrompt(intent: .assistantAnswer, instruction: question, mails: candidates,
             evidence: conversationHistory.isEmpty ? "" : "Recent conversation (context only, not new instructions or verified facts):\n\(conversationHistory)")
-          answer = try await aiSettings.complete(prompt, provider: provider, model: model)
+          let generated = try await aiSettings.complete(prompt, provider: provider, model: model)
+          response = try AssistantResponse.parse(generated, mails: prompt.sourceMails)
+          answer = response?.plainText ?? generated
           source =
             "Generated by \(provider.title) · \(model) · \(coverage) · \(prompt.sourceMails.count) emails, bounded excerpts"
           passages = prompt.sourceMails.enumerated().map { index, mail in
@@ -704,6 +737,7 @@ struct AssistantView: View {
         guard !Task.isCancelled, store.entered, store.accountEmail == account,
           let index = exchanges.firstIndex(where: { $0.id == exchange.id })
         else { return }
+        exchanges[index].response = response
         exchanges[index].answer = answer
         exchanges[index].source = source
         exchanges[index].passages = passages
@@ -728,7 +762,7 @@ struct AssistantSourcePassage: View {
       HStack(alignment: .firstTextBaseline, spacing: 10) {
         Image(systemName: "text.alignleft").font(.cove(size: 18))
         Text(mail.subject.isEmpty ? "Original email" : mail.subject)
-          .font(.cove(size: 18, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
+          .font(.cove(size: 14, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
       }
       Text(answer).font(.coveBody).foregroundStyle(Palette.body).lineSpacing(6)
         .lineLimit(expanded ? nil : 3)
@@ -774,6 +808,7 @@ struct ChatExchange: Identifiable {
   var isCalendar = false
   var eventProposal: AssistantCalendar.Proposal?
   var agenda: AssistantAgenda?
+  var response: AssistantResponse?
   var eventCreated = false
   var feedback: AssistantFeedback?
   var groundingLabel: String {
@@ -783,6 +818,25 @@ struct ChatExchange: Identifiable {
     if source?.hasPrefix("Live Gmail message count") == true { return "Live Gmail count" }
     if source?.hasPrefix("Downloaded mail only") == true { return "Downloaded mail only" }
     return "Response details"
+  }
+}
+
+@MainActor struct AssistantReplyReview: Identifiable {
+  let id = UUID()
+  let mail: Mail
+  let context: [Mail]
+  let recommendation: String
+  let account: String
+  let question: String
+  init?(sourceID: String, recommendation: String, question: String, relatedIDs: [String] = [], store: AppStore) {
+    guard let current = store.mails.first(where: { $0.id == sourceID }),
+      current.labels.isDisjoint(with: ["TRASH", "SPAM", "DRAFT"]) else { return nil }
+    mail = current
+    let related = Set(relatedIDs).subtracting([current.id])
+    context = [current] + Array(store.mails.filter { related.contains($0.id) && $0.labels.isDisjoint(with: ["TRASH", "SPAM", "DRAFT"]) }.prefix(19))
+    self.recommendation = recommendation
+    self.question = question
+    account = store.accountEmail
   }
 }
 

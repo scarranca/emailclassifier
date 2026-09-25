@@ -8,6 +8,8 @@ struct AIWritingSheet: View {
   let onInsert: (String) -> Void
   var onConfigure: (() -> Void)? = nil
   var store: AppStore? = nil
+  var initialInstruction = ""
+  var recommendationContext = ""
   @Environment(\.dismiss) private var dismiss
   @State private var draft = ""
 
@@ -19,7 +21,7 @@ struct AIWritingSheet: View {
         Button("Cancel") { dismiss() }.buttonStyle(SecondaryButton())
       }.padding(20)
       Divider()
-      AIWritingPanel(draft: $draft, context: context, availableContext: store?.mails ?? [], voice: store?.preferences.voice ?? "Natural and concise", instructions: store?.preferences.instructions ?? [], store: store, envelope: "Reply to: \(context.first?.replyRecipient ?? "")\nSubject: \(context.first?.subject ?? "")", onApply: { value in
+      AIWritingPanel(draft: $draft, context: context, availableContext: store?.mails ?? [], voice: store?.preferences.voice ?? "Natural and concise", instructions: store?.preferences.instructions ?? [], store: store, initialInstruction: initialInstruction, recommendationContext: recommendationContext, envelope: "Reply to: \(context.first?.replyRecipient ?? "")\nSubject: \(context.first?.subject ?? "")", onApply: { value in
         onInsert(value)
         dismiss()
       }, onConfigure: {
@@ -39,6 +41,8 @@ struct AIWritingPanel: View {
   var voice = "Natural and concise"
   var instructions: [String] = []
   var store: AppStore? = nil
+  var initialInstruction = ""
+  var recommendationContext = ""
   var envelope = ""
   var envelopeIdentity: String? = nil
   var activity: WritingActivity? = nil
@@ -128,6 +132,7 @@ struct AIWritingPanel: View {
       }.padding(22).frame(maxWidth: .infinity, alignment: .leading)
       }
     }.background(Palette.surface)
+      .onAppear { if instruction.isEmpty { instruction = initialInstruction } }
       .task { await activeSettings.restoreWritingConnection() }
       .onDisappear { task?.cancel(); activity?.reset() }
       .onChange(of: envelopeIdentity ?? envelope) { _, _ in
@@ -413,7 +418,7 @@ struct AIWritingPanel: View {
             return try await store.writingCalendar(from: from, to: to)
           }, calendarAvailable: store?.calendarConnected == true || store?.isSample == true)
         let result = try await agent.draft(instruction: request, draft: source, mails: mails,
-          envelope: currentEnvelope, useTools: lookup, userInstruction: userRequest, session: scoped ? WritingSession() : session) { stage in
+          envelope: currentEnvelope, useTools: lookup, userInstruction: userRequest, session: scoped ? WritingSession() : session, recommendationContext: recommendationContext) { stage in
             workingStage = stage; activity?.stage = stage
           }
         let text = result.text

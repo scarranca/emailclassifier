@@ -73,7 +73,7 @@ import XCTest
   }
 
   private func render(store: AppStore, settings: AIProviderSettings, exchanges: [ChatExchange], available: CGSize, name: String) async throws {
-    let width = min(752, available.width - 48), height = min(800, available.height - 48)
+    let width = min(800, available.width - 48), height = min(896, available.height - 48)
     let host = NSHostingView(rootView: AssistantView(store: store, availableSize: available,
       settings: settings, initialExchanges: exchanges))
     let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: height), styleMask: [.borderless], backing: .buffered, defer: false)

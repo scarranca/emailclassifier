@@ -6,6 +6,23 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Cove</title>
         <item>
+            <title>0.1.35</title>
+            <pubDate>Fri, 25 Sep 2026 12:14:26 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>37</sparkle:version>
+            <sparkle:shortVersionString>0.1.35</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>A clearer conversation with Cove</h2>
+<ul>
+<li>Chat follows the redesigned Cove Agent Chat from Pen: a contained answer, compact question bubble, quieter composer, and collapsed sources.</li>
+<li>AI email answers lead with a short conclusion, an optional main recommendation, and secondary checks linked to their original emails. Evidence comparisons use exact passages from the supplied sources.</li>
+<li>Draft reply opens the writing flow with the cited email, existing draft, and recommendation as context. Suggestions still require Apply to draft, and sending remains a separate action.</li>
+<li>Copy and feedback are directly accessible. Calendar agendas, Markdown answers, and error states share the new response layout, which adapts to smaller windows.</li>
+</ul>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.35.dmg" length="16448118" type="application/octet-stream" sparkle:edSignature="dTFIdx3PO1elT6YJDLWiEQ/FxYF6ZSkgSTTppS/DfpXbHcUXAw4FkKLavuZJLhMM+yNcXdezDw522hd/6DmvBg=="/>
+        </item>
+        <item>
             <title>0.1.34</title>
             <pubDate>Thu, 24 Sep 2026 22:51:11 -0700</pubDate>
             <link>https://covemail.xyz/beta/</link>
@@ -39,26 +56,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://covemail.xyz/downloads/Cove-0.1.33.dmg" length="16179953" type="application/octet-stream" sparkle:edSignature="FGHZfT7bJcl1FwpO4mekoIWElMw4kQtD1mSkVmoGEQE2absvdm8jQHY6qcrk7Y1hx3XSaZbYq2Z/IAkaowJtAw=="/>
         </item>
-        <item>
-            <title>0.1.32</title>
-            <pubDate>Thu, 24 Sep 2026 21:25:13 -0700</pubDate>
-            <link>https://covemail.xyz/beta/</link>
-            <sparkle:version>34</sparkle:version>
-            <sparkle:shortVersionString>0.1.32</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>Quieter reviews, more reliable deletion</h2>
-<ul>
-<li>Uncertain agent results now stay in Agents → Activity without adding a Gmail label. A Needs review filter makes them easier to find. Existing review labels are left unchanged.</li>
-<li>Clearly unrelated email no longer becomes a review solely because an attachment could not be read. Uncertain or incomplete matches still require review before an agent acts.</li>
-<li>⌘Delete can queue emails while Cove is busy. The notification distinguishes waiting from an active Gmail request, and Undo remains available until the request starts.</li>
-<li>Deleting another email while a previous deletion is being sent keeps a separate undo window. Long waits restore the affected emails with an error instead of leaving a stuck notification.</li>
-</ul>
-]]></description>
-            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.32.dmg" length="15951992" type="application/octet-stream" sparkle:edSignature="h/oo5sHx400oXk8kmE5xKkgddaGqh1DQNV3mhToPitgxJifcAuCE7/Kg01vd5IpRPKXb1IbYTzcZsQeJ6hfCBA=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: Lt/y6iigy8odx99grcWhGnA6VhCqK4oJrl75BEpN1Sv82WxVFaTL4xtQU1742qeAlBnBDEZJ5DKlFFmZ/mAcDw==
-length: 4544
+edSignature: 8fc7hEDxirM7hVeFlopnCA+V7FiOLJOc2EuuXTEvNMMtS8mKPYFpLyvvz7NocO1Injz2E8AbICPkHLxiS1cUBg==
+length: 4515
 -->

@@ -104,10 +104,11 @@ struct ChatMarkdownDocument {
 
 struct ChatMarkdown: View {
   private let document: ChatMarkdownDocument
-  init(_ source: String) { document = ChatMarkdownDocument(source) }
+  private let fontSize: CGFloat
+  init(_ source: String, fontSize: CGFloat = 15) { document = ChatMarkdownDocument(source); self.fontSize = fontSize }
   var body: some View {
     ChatMarkdownBlock(node: document.root)
-      .font(.cove(size: 15)).foregroundStyle(Palette.body).tint(Palette.ink)
+      .font(.cove(size: fontSize)).foregroundStyle(Palette.body).tint(Palette.ink)
       .textSelection(.enabled)
       .frame(maxWidth: .infinity, alignment: .leading)
       .environment(\.openURL, OpenURLAction { url in
