@@ -98,3 +98,6 @@ The view selector offers Workweek, Week, and Month. Month uses a Monday-first si
 ### Settings and integrations readability (0.1.40)
 
 Keep these task-focused pages in an 800-point reading column. Use 26-point medium page titles, 18-point medium section names, 14-point medium setting labels, and 13-point body-colored explanations. Do not use decorative landscape banners or a competing preview column here. Settings sections have full-width disclosure headers, icon/title/status grouping, and consistent 22-point insets; all sections participate in Collapse all. Cloud sync and Privacy have sidebar anchors. Advanced account settings remain nested disclosures. Integrations follows three explicit steps: account, model version, test and save. Saved default and connected-account status are separate facts; saving still follows a successful synthetic test. Future integrations stay under one collapsed disclosure.
+
+
+0.1.41 Settings navigation supersedes the all-sections layout: each sidebar destination shows only its own content. The page header names the selected section; remove top-level accordions, Collapse all, and the redundant Settings destination. Keep nested advanced connection disclosures. Switching destinations resets that section’s scroll position while parent-owned credential input stays intact. Legacy Settings entry points resolve to Gmail.

@@ -8,101 +8,54 @@ struct SettingsView: View {
   @State private var secret = ""
   @State private var key = ""
   @State private var showAdvancedGoogle = false
-  @State private var gmailExpanded = true
-  @State private var jevExpanded = true
-  @State private var readingExpanded = true
   @State private var saved = false
   @State private var confirmErasure = false
   @State private var includeCalendar = UserDefaults.standard.bool(forKey: "calendarConnected")
-  @State private var cloudExpanded = true
-  @State private var privacyExpanded = false
-  @State private var updatesExpanded = false
   var readSecret: (String) throws -> String? = { try Vault.read($0) }
 
-  private var anyExpanded: Bool {
-    gmailExpanded || jevExpanded || readingExpanded || (store.cloudConfigured && cloudExpanded) || privacyExpanded || updatesExpanded
+  var selectedSection: String {
+    switch store.settingsSection {
+    case "Jev · Mail agent", "Reading", "Privacy", "App updates": return store.settingsSection
+    case "Cloud sync" where store.cloudConfigured: return "Cloud sync"
+    default: return "Gmail"
+    }
   }
-  private func reveal(_ destination: String) {
-    if destination == "Settings" || destination == "Gmail" { gmailExpanded = true }
-    if destination == "Jev · Mail agent" { jevExpanded = true }
-    if destination == "Reading" { readingExpanded = true }
-    if destination == "Cloud sync" { cloudExpanded = true }
-    if destination == "Privacy" { privacyExpanded = true }
-    if destination == "App updates" { updatesExpanded = true }
+
+  private var sectionDescription: String {
+    switch selectedSection {
+    case "Jev · Mail agent": return "Organization, writing voice, and instructions."
+    case "Reading": return "Choose how emails look when you open them."
+    case "Cloud sync": return "Manage your optional cloud copy."
+    case "Privacy": return "Manage the data stored on this Mac."
+    case "App updates": return "Keep Cove up to date."
+    default: return "Manage your inbox and Google connection."
+    }
   }
 
   var body: some View {
-    ScrollViewReader { proxy in
-      HStack(spacing: 0) {
-        SettingsSidebar(store: store, section: store.settingsSection) { destination in
-          store.settingsSection = destination
-          reveal(destination)
-          withAnimation(.easeInOut(duration: 0.2)) {
-            proxy.scrollTo(destination == "Settings" ? "Gmail" : destination, anchor: .top)
-          }
-        }.frame(width: 224)
+    HStack(spacing: 0) {
+      SettingsSidebar(store: store, section: selectedSection) { destination in
+        store.settingsSection = destination
+      }.frame(width: 224)
+      Divider()
+      VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 6) {
+          Text(selectedSection == "Privacy" ? "Privacy & local data" : selectedSection)
+            .font(.cove(size: 26, weight: .medium))
+          Text(sectionDescription).font(.coveBody).foregroundStyle(Palette.body)
+        }.padding(.horizontal, 32).padding(.vertical, 24)
         Divider()
-        VStack(spacing: 0) {
-          HStack(alignment: .center, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-              Text("Settings").font(.cove(size: 26, weight: .medium))
-              Text(saved ? "Credentials saved." : "Make Cove work your way.")
-                .font(.coveBody).foregroundStyle(Palette.body)
-            }
-            Spacer(minLength: 0)
-            Button(anyExpanded ? "Collapse all" : "Expand all") {
-              let expand = !anyExpanded
-              gmailExpanded = expand; jevExpanded = expand; readingExpanded = expand
-              cloudExpanded = expand; privacyExpanded = expand; updatesExpanded = expand
-            }.buttonStyle(SecondaryButton())
-          }.padding(.horizontal, 32).padding(.vertical, 24)
-          Divider()
-          ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-              DisclosureGroup(isExpanded: $gmailExpanded) {
-                gmailSection
-              } label: {
-                heading("Gmail", store.auth.isConnected ? "Connected · \(store.accountEmail)" : "Connect your inbox and calendar.", icon: "envelope")
-              }.id("Gmail")
-              DisclosureGroup(isExpanded: $jevExpanded) {
-                jevSection
-              } label: {
-                heading("Jev · Mail agent", store.preferences.autoClassify ? "Automatic organization is on" : "Automatic organization is off", icon: "sparkles")
-              }.id("Jev · Mail agent")
-              DisclosureGroup(isExpanded: $readingExpanded) {
-                ReadingSettingsView(showsHeading: false)
-              } label: {
-                heading("Reading", "Message appearance and image privacy", icon: "text.alignleft")
-              }.id("Reading")
-              if store.cloudConfigured {
-                CloudSyncSettings(store: store, expansion: $cloudExpanded).id("Cloud sync")
-              }
-              DisclosureGroup(isExpanded: $privacyExpanded) {
-                privacySection
-              } label: {
-                heading("Privacy & local data", "Storage and account removal", icon: "lock.shield")
-              }.id("Privacy")
-              DisclosureGroup(isExpanded: $updatesExpanded) {
-                AppUpdateSettings()
-              } label: {
-                heading("App updates", "Keep Cove up to date", icon: "arrow.down.circle")
-              }.id("App updates")
-              Text("Preferences save automatically on this Mac. Connection credentials have their own Save button.")
+        ScrollView {
+          VStack(alignment: .leading, spacing: 24) {
+            sectionContent
+            if saved && (selectedSection == "Gmail" || selectedSection == "Jev · Mail agent") {
+              Label("Credentials saved", systemImage: "checkmark.circle")
                 .font(.cove(size: 13)).foregroundStyle(Palette.body)
-                .fixedSize(horizontal: false, vertical: true).padding(.horizontal, 4)
-            }.disclosureGroupStyle(SettingsSectionDisclosureStyle())
-              .frame(maxWidth: 800, alignment: .leading)
-              .frame(maxWidth: .infinity, alignment: .leading).padding(32)
-          }
-
-        }.background(Palette.canvas)
-      }
-      .onChange(of: store.settingsSection, initial: true) { _, destination in
-        reveal(destination)
-        withAnimation(.easeInOut(duration: 0.2)) {
-          proxy.scrollTo(destination == "Settings" ? "Gmail" : destination, anchor: .top)
-        }
-      }
+            }
+          }.frame(maxWidth: 800, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading).padding(32)
+        }.id(selectedSection)
+      }.background(Palette.canvas)
     }
     .disclosureGroupStyle(CoveDisclosureStyle())
     .onAppear {
@@ -120,6 +73,17 @@ struct SettingsView: View {
       Button("Remove local data", role: .destructive) { store.eraseLocalMailbox() }
     } message: {
       Text("This permanently removes downloaded mail, unsent drafts, local contacts, local calendar events, preferences and Jev results from Cove on this Mac. Gmail and Google Calendar stay unchanged. Existing backups are not erased.")
+    }
+  }
+
+  @ViewBuilder private var sectionContent: some View {
+    switch selectedSection {
+    case "Jev · Mail agent": jevSection
+    case "Reading": ReadingSettingsView(showsHeading: false)
+    case "Cloud sync": CloudSyncSettings(store: store, showsHeading: false)
+    case "Privacy": privacySection
+    case "App updates": AppUpdateSettings(showsHeading: false)
+    default: gmailSection
     }
   }
 
@@ -225,9 +189,6 @@ struct SettingsView: View {
 
   private var syncDescription: String {
     store.lastSync.map { "Last synced \($0.formatted(date: .omitted, time: .shortened))" } ?? "Ready to sync"
-  }
-  private func heading(_ title: String, _ subtitle: String, icon: String) -> some View {
-    SettingsSectionHeading(title: title, subtitle: subtitle, icon: icon)
   }
   private func copy(_ title: String, _ help: String) -> some View {
     VStack(alignment: .leading, spacing: 5) {

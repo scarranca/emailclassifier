@@ -87,12 +87,13 @@ import SwiftUI
 }
 
 struct AppUpdateSettings: View {
+  var showsHeading = true
   @ObservedObject private var updater = AppUpdater.shared
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
       HStack {
-        Text("App updates").font(.coveSection)
-        Spacer()
+        if showsHeading { Text("App updates").font(.coveSection) }
+        if showsHeading { Spacer() }
         Text("Cove \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development")")
           .font(.cove(size: 13)).foregroundStyle(Palette.muted)
       }

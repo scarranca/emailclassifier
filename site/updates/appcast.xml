@@ -6,6 +6,18 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Cove</title>
         <item>
+            <title>0.1.41</title>
+            <pubDate>Fri, 25 Sep 2026 23:52:22 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>43</sparkle:version>
+            <sparkle:shortVersionString>0.1.41</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>One settings section at a time</h2>
+<ul><li>Select Gmail, Jev, Reading, Cloud sync, Privacy, or App updates in the sidebar to see only that section.</li><li>Focused pages replace the long settings list and top-level accordions.</li><li>Advanced connection options remain tucked away, and switching sections keeps your credential edits.</li></ul>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.41.dmg" length="16811445" type="application/octet-stream" sparkle:edSignature="ZHeenaY3Aab3/eO4j9fVHP6jeSkiWmGj4baUNdIKm+AJd2AZtKu0nEYlzmHzOM2w72ZUQD/QwtYhjkUilXRhAg=="/>
+        </item>
+        <item>
             <title>0.1.40</title>
             <pubDate>Fri, 25 Sep 2026 23:43:03 -0700</pubDate>
             <link>https://covemail.xyz/beta/</link>
@@ -39,25 +51,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://covemail.xyz/downloads/Cove-0.1.39.dmg" length="16740314" type="application/octet-stream" sparkle:edSignature="ywfWT2cXXilgknc6EtY7f7n2B1PBh0eHLCX4nXV6WGYBzxrM/9iRwdeWsvHjfBLhak4d15RMkUZQlmWU5FdRAg=="/>
         </item>
-        <item>
-            <title>0.1.38</title>
-            <pubDate>Fri, 25 Sep 2026 21:55:30 -0700</pubDate>
-            <link>https://covemail.xyz/beta/</link>
-            <sparkle:version>40</sparkle:version>
-            <sparkle:shortVersionString>0.1.38</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>Your calendar, at a glance</h2>
-<ul>
-<li>The weekly calendar opens near the current time. Today returns to the current day and time, while selecting an event brings its time into view.</li>
-<li>Choose Month to see a full monthly calendar. Select a day for its agenda, open event previews, or use “more” to see a busy day’s full schedule.</li>
-<li>Month navigation and Google Calendar sync cover every visible day, including dates from adjacent months.</li>
-</ul>
-]]></description>
-            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.38.dmg" length="16610236" type="application/octet-stream" sparkle:edSignature="Boay/iewDPdDpr7gto1L2MfVC8hQeRyPSLlO2a/r6b7GZSsDHx3v2BgRyeT8jigdnqYF1kt/X4oKZXnqoWR+Bw=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: XH5Y6SXTqIg3YJ3EJ8UPPAHEoV1SawAOMztct+MosnCfQpnDHdi0in35YFYkJpayoMFL7B+GRhQ8IcRAgDRBCQ==
-length: 4104
+edSignature: eUGgoARNJ9QYWHgqUDQhpekcjtezhZywwI6hDOwOQSqA7C/vQlj5T6OT9t1QQiMwy6hSTkTSD0nOj8Kmtj0QBQ==
+length: 3981
 -->

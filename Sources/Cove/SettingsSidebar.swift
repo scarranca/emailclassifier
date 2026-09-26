@@ -15,8 +15,10 @@ struct SettingsSidebar: View {
         Label(store.entered ? "Back to Cove" : "Back to sign in", systemImage: "arrow.left")
           .font(.cove(size: 14, weight: .medium))
       }.buttonStyle(.plain).disabled(store.busy)
-      VStack(spacing: 5) {
-        ForEach([("Settings", "gearshape"), ("Gmail", "envelope"),
+      VStack(alignment: .leading, spacing: 5) {
+        Text("Settings").font(.cove(size: 12, weight: .medium))
+          .foregroundStyle(Palette.body).padding(.horizontal, 11).padding(.bottom, 8)
+        ForEach([("Gmail", "envelope"),
                  ("Jev · Mail agent", "sparkles"), ("Reading", "text.alignleft")] +
                  (store.cloudConfigured ? [("Cloud sync", "icloud")] : []) +
                  [("Privacy", "lock.shield"), ("App updates", "arrow.down.circle")], id: \.0) { title, icon in

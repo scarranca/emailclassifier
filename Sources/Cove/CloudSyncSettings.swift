@@ -4,12 +4,34 @@ import SwiftUI
 struct CloudSyncSettings: View {
   @Bindable var store: AppStore
   @State private var expanded = true
-  var expansion: Binding<Bool>? = nil
+  var showsHeading = true
   @State private var confirmEnable = false
   @State private var confirmRemove = false
 
   var body: some View {
-    DisclosureGroup(isExpanded: expansion ?? $expanded) {
+    Group {
+      if showsHeading {
+        DisclosureGroup(isExpanded: $expanded) {
+          content.padding(.top, 16)
+        } label: {
+          SettingsSectionHeading(title: "Cloud sync", subtitle: "Private pilot · " + (store.cloudMirror.enabled ? "Enabled" : store.cloudMirror.accountID != nil ? "Paused" : "Off"), icon: "icloud")
+        }
+      } else { content }
+    }
+    .alert("Enable a cloud copy of recent mail?", isPresented: $confirmEnable) {
+      Button("Cancel", role: .cancel) {}
+      Button("Connect Google and enable") { Task { await store.enableCloudSync() } }
+    } message: {
+      Text("Your recent downloaded mail, labels and Jev results will be sent to Cove’s servers on PlanetScale and Google Cloud. Sign in with the same Gmail account. Use only one Mac as the uploader during this pilot. This does not enable background mail retrieval when the Mac is closed.")
+    }
+    .alert("Remove the cloud copy?", isPresented: $confirmRemove) {
+      Button("Cancel", role: .cancel) {}
+      Button("Remove cloud copy", role: .destructive) { Task { await store.removeCloudCopy() } }
+    } message: {
+      Text("Cloud sync will stop and live cloud records and their account encryption key will be removed. Remaining encrypted body objects are scheduled for cleanup after 30 days; database backups follow PlanetScale retention. Gmail and this Mac’s mail stay unchanged.")
+    }
+  }
+  private var content: some View {
       VStack(alignment: .leading, spacing: 16) {
         Text("Keep a recent cloud copy for future mobile access. Sync runs while Cove is open on this Mac.")
           .font(.coveBody).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
@@ -42,21 +64,7 @@ struct CloudSyncSettings: View {
           .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
         Text("Cove stores encrypted mail headers and Jev results in PlanetScale, and encrypted bodies in Google Cloud. Cove’s server holds the decryption keys. Pausing keeps the existing cloud copy; removing local data does not remove it.")
           .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
-      }.padding(.top, 16)
-    } label: {
-      SettingsSectionHeading(title: "Cloud sync", subtitle: "Private pilot · " + (store.cloudMirror.enabled ? "Enabled" : store.cloudMirror.accountID != nil ? "Paused" : "Off"), icon: "icloud")
-    }
-    .alert("Enable a cloud copy of recent mail?", isPresented: $confirmEnable) {
-      Button("Cancel", role: .cancel) {}
-      Button("Connect Google and enable") { Task { await store.enableCloudSync() } }
-    } message: {
-      Text("Your recent downloaded mail, labels and Jev results will be sent to Cove’s servers on PlanetScale and Google Cloud. Sign in with the same Gmail account. Use only one Mac as the uploader during this pilot. This does not enable background mail retrieval when the Mac is closed.")
-    }
-    .alert("Remove the cloud copy?", isPresented: $confirmRemove) {
-      Button("Cancel", role: .cancel) {}
-      Button("Remove cloud copy", role: .destructive) { Task { await store.removeCloudCopy() } }
-    } message: {
-      Text("Cloud sync will stop and live cloud records and their account encryption key will be removed. Remaining encrypted body objects are scheduled for cleanup after 30 days; database backups follow PlanetScale retention. Gmail and this Mac’s mail stay unchanged.")
-    }
+      }
   }
+
 }
