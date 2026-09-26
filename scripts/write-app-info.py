@@ -8,8 +8,8 @@ import plistlib
 import re
 import sys
 
-version = os.environ.get("COVE_VERSION", "0.1.38")
-build = os.environ.get("COVE_BUILD", "40")
+version = os.environ.get("COVE_VERSION", "0.1.39")
+build = os.environ.get("COVE_BUILD", "41")
 if not re.fullmatch(r"\d+\.\d+\.\d+", version) or not re.fullmatch(r"\d+", build):
     sys.exit("COVE_VERSION must be x.y.z and COVE_BUILD must be an integer.")
 info = {
@@ -31,6 +31,13 @@ if os.environ.get("COVE_DISTRIBUTION") == "1":
                 SUScheduledCheckInterval=86400, SUEnableSystemProfiling=False,
                 SUVerifyUpdateBeforeExtraction=True, SURequireSignedFeed=True,
                 SUEnableJavaScript=False)
+cloud_url = os.environ.get("COVE_CLOUD_SYNC_URL")
+if not cloud_url and os.environ.get("COVE_DISTRIBUTION") == "1":
+    cloud_url = json.loads((Path(__file__).resolve().parents[1] / "assets/cloud-sync-config.json").read_text())["baseURL"]
+if cloud_url:
+    if not re.fullmatch(r"https://[a-z0-9-]+(?:\.[a-z0-9-]+)*\.run\.app", cloud_url):
+        sys.exit("COVE_CLOUD_SYNC_URL must be the verified Cloud Run HTTPS origin.")
+    info["CoveCloudSyncURL"] = cloud_url
 source = os.environ.get("COVE_GOOGLE_OAUTH_FILE")
 if source:
     try:

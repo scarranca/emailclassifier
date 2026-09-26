@@ -6,7 +6,12 @@ import PDFKit
 import SwiftUI
 
 @MainActor @Observable final class AppStore {
-  var mails: [Mail] = []
+  var mails: [Mail] = [] { didSet { scheduleCloudSync() } }
+  var cloudMirror = CloudMirrorState()
+  var cloudStatus = "Cloud sync is off"
+  var cloudSyncing = false
+  private var cloudTask: Task<Void, Never>?
+  private var cloudNeedsSync = false
   var gmailLabels: [GmailLabel] = []
   var labelsRefreshing = false
   private var lastLabelsRefresh = Date.distantPast
@@ -281,6 +286,9 @@ import SwiftUI
     mailboxGeneration = UUID()
     lastMailboxPoll = .distantPast
     automaticRetryAfter = [:]
+    cloudTask?.cancel(); cloudTask = nil; cloudSyncing = false; cloudNeedsSync = false
+    cloudMirror = (try? snapshot.database.load(CloudMirrorState.self, key: "cloudMirror")) ?? CloudMirrorState()
+    cloudStatus = cloudMirror.enabled ? "Ready to sync" : "Cloud sync is off"
     database = snapshot.database
     mails = snapshot.mails
     preferences = snapshot.preferences
@@ -496,7 +504,7 @@ import SwiftUI
     guard !busy else { return }
     var connected = false
     await run("Connecting to Gmail…") {
-      let pending = try await self.auth.connect(includeCalendar: includeCalendar)
+      let pending = try await self.auth.connect(includeCalendar: includeCalendar, includeCloud: self.cloudMirror.enabled)
       // Nothing in the active account changes until identity, database, and Keychain all succeed.
       let snapshot = try self.loadMailbox(name: pending.session.email)
       try self.auth.commit(pending)
@@ -530,6 +538,8 @@ import SwiftUI
   }
 
   private func resetDisconnectedMailbox() {
+    cloudTask?.cancel(); cloudTask = nil; cloudSyncing = false; cloudNeedsSync = false
+    cloudMirror = CloudMirrorState(); cloudStatus = "Cloud sync is off"
     mailboxGeneration = UUID()
     entered = false
     mails = []
@@ -634,6 +644,7 @@ import SwiftUI
     if synced && !older && preferences.autoClassify { await organizeMail(automatically: true) }
     if synced && !older && generation == mailboxGeneration {
       await runCustomAgents()
+      scheduleCloudSync()
     }
   }
   func chooseFolder(_ folder: String) {
@@ -1936,6 +1947,158 @@ extension AppStore {
         status = "Showing downloaded mail"
         if !(error is CancellationError), mailScopeLabelID == labelID { labelMailError = "Couldn’t load this view from Gmail. Try refreshing again." }
       }
+    }
+  }
+}
+
+
+extension AppStore {
+  var cloudConfigured: Bool { cloudURL != nil }
+  private var cloudURL: URL? {
+    guard let value = Bundle.main.object(forInfoDictionaryKey: "CoveCloudSyncURL") as? String,
+      let url = URL(string: value), url.scheme == "https", url.host?.hasSuffix(".run.app") == true
+    else { return nil }
+    return url
+  }
+  private func saveCloudState() throws { try database?.save(cloudMirror, key: "cloudMirror") }
+  private func scheduleCloudSync() {
+    guard cloudMirror.enabled, cloudConfigured, entered, !isSample else { return }
+    cloudNeedsSync = true
+    guard cloudTask == nil, !cloudSyncing else { return }
+    let generation = mailboxGeneration
+    cloudTask = Task { [weak self] in
+      do { try await Task.sleep(for: .seconds(2)) } catch { return }
+      guard let self, generation == self.mailboxGeneration else { return }
+      self.cloudTask = nil
+      await self.syncCloud()
+    }
+  }
+  func pauseCloudSync() {
+    cloudMirror.enabled = false
+    cloudTask?.cancel(); cloudTask = nil; cloudNeedsSync = false
+    do { try saveCloudState(); cloudStatus = "Paused · your existing cloud copy is kept" }
+    catch { cloudStatus = "Couldn’t save the pause. Try again before closing Cove." }
+  }
+  func enableCloudSync(resume: Bool = true) async {
+    guard !cloudSyncing, !busy, entered, !isSample, let cloudURL else { return }
+    cloudSyncing = true; cloudStatus = "Connecting Google for cloud sync…"
+    let generation = mailboxGeneration; let email = accountEmail
+    defer { if generation == mailboxGeneration { cloudSyncing = false } }
+    do {
+      let pending = try await auth.connect(includeCalendar: calendarConnected, includeCloud: true)
+      guard generation == mailboxGeneration, email == accountEmail else { throw CancellationError() }
+      try pending.session.requireMailbox(email)
+      try auth.commit(pending)
+      auth.finishBrowserSignIn(success: true)
+      if !resume {
+        cloudStatus = cloudMirror.enabled ? "Ready to sync" : "Google connected · cloud sync remains paused"
+        return
+      }
+      let client = try CloudMailClient(baseURL: cloudURL)
+      let connection = try await client.connect(token: auth.cloudToken(for: email))
+      guard generation == mailboxGeneration, email == accountEmail else { throw CancellationError() }
+      if cloudMirror.accountID != connection.accountID { cloudMirror = CloudMirrorState() }
+      cloudMirror.accountID = connection.accountID; cloudMirror.enabled = true
+      try saveCloudState()
+      cloudSyncing = false
+      await syncCloud()
+    } catch {
+      auth.finishBrowserSignIn(success: false)
+      if generation == mailboxGeneration { cloudStatus = error.localizedDescription }
+    }
+  }
+  func removeCloudCopy() async {
+    guard !cloudSyncing, !busy, !isSample, let cloudURL, let id = cloudMirror.accountID else { return }
+    pauseCloudSync()
+    cloudSyncing = true; cloudStatus = "Removing cloud copy…"
+    let generation = mailboxGeneration; let email = accountEmail
+    defer { if generation == mailboxGeneration { cloudSyncing = false } }
+    do {
+      let client = try CloudMailClient(baseURL: cloudURL)
+      do { try await client.remove(accountID: id, token: auth.cloudToken(for: email)) }
+      catch let failure as CloudSyncFailure where failure.code == "cloud_not_connected" { }
+      guard generation == mailboxGeneration, email == accountEmail else { throw CancellationError() }
+      cloudMirror = CloudMirrorState(); try saveCloudState()
+      cloudStatus = "Cloud copy removed · Gmail and this Mac are unchanged"
+    } catch { if generation == mailboxGeneration { cloudStatus = error.localizedDescription } }
+  }
+  func syncCloud() async {
+    guard !cloudSyncing, cloudMirror.enabled, entered, !isSample, let cloudURL,
+      let id = cloudMirror.accountID else { return }
+    cloudSyncing = true
+    let generation = mailboxGeneration; let email = accountEmail
+    func ensureCurrent() throws {
+      try Task.checkCancellation()
+      guard generation == mailboxGeneration, email == accountEmail, cloudMirror.enabled,
+        cloudMirror.accountID == id, !isSample else { throw CancellationError() }
+    }
+    defer { if generation == mailboxGeneration { cloudSyncing = false } }
+    do {
+      let client = try CloudMailClient(baseURL: cloudURL)
+      repeat {
+        cloudNeedsSync = false
+        try ensureCurrent()
+        let connection = try await client.connection(token: auth.cloudToken(for: email))
+        try ensureCurrent()
+        guard connection.accountID == id else { throw CloudSyncFailure(code: "connection_changed") }
+        var revision = connection.revision
+        // Reconcile a lost upload response or a missing device checkpoint against the server inventory.
+        if cloudMirror.revision != connection.revision {
+          var cursor = "0"; var remoteIDs: Set<String> = []
+          for pageNumber in 0..<51 {
+            let token = try await auth.cloudToken(for: email)
+            try ensureCurrent()
+            let page = try await client.changes(accountID: id, after: cursor, token: token)
+            try ensureCurrent()
+            guard page.accountID == id else { throw CloudSyncFailure(code: "connection_changed") }
+            for change in page.messages where !change.deleted { remoteIDs.insert(change.id) }
+            if !page.hasMore { break }
+            guard page.cursor != cursor, pageNumber < 50 else { throw CloudSyncFailure(code: "temporarily_unavailable") }
+            cursor = page.cursor
+            cloudStatus = "Checking the cloud copy…"
+            try await Task.sleep(for: .seconds(2))
+          }
+          cloudMirror.fingerprints = cloudMirror.fingerprints.filter { remoteIDs.contains($0.key) }
+          for remote in remoteIDs where cloudMirror.fingerprints[remote] == nil { cloudMirror.fingerprints[remote] = "" }
+          cloudMirror.revision = connection.revision; try saveCloudState()
+        }
+        let snapshot = mails
+        let (records, fingerprints) = try await Task.detached(priority: .utility) {
+          let records = CloudMailRecord.recent(snapshot)
+          return (records, try Dictionary(uniqueKeysWithValues: records.map { ($0.id, try $0.fingerprint) }))
+        }.value
+        try ensureCurrent()
+        let desiredIDs = Set(records.map(\.id))
+        // This is an explicitly bounded mirror, not a full mailbox archive.
+        var removals = cloudMirror.fingerprints.keys.filter { !desiredIDs.contains($0) }.sorted()
+        var changed: [CloudMailRecord] = []
+        for record in records where cloudMirror.fingerprints[record.id] != fingerprints[record.id] { changed.append(record) }
+        var uploaded = 0
+        while !removals.isEmpty || !changed.isEmpty {
+          try ensureCurrent()
+          let batchRecords = Array(changed.prefix(4)); let batchRemovals = Array(removals.prefix(25))
+          cloudStatus = "Syncing recent mail · \(uploaded) updated"
+          let token = try await auth.cloudToken(for: email)
+          try ensureCurrent()
+          revision = try await client.upload(CloudMailBatch(accountID: id, baseRevision: revision,
+            messages: batchRecords, deletedIDs: batchRemovals), token: token)
+          try ensureCurrent()
+          for record in batchRecords { cloudMirror.fingerprints[record.id] = fingerprints[record.id] }
+          for removed in batchRemovals { cloudMirror.fingerprints.removeValue(forKey: removed) }
+          cloudMirror.revision = revision
+          try saveCloudState()
+          changed.removeFirst(batchRecords.count); removals.removeFirst(batchRemovals.count)
+          uploaded += batchRecords.count
+          // Bound network/DB use, leave room below the API's per-account rate limit.
+          try await Task.sleep(for: .seconds(2))
+        }
+        cloudMirror.lastSync = Date(); try saveCloudState()
+        cloudStatus = "Up to date · \(cloudMirror.fingerprints.count) recent emails"
+      } while cloudNeedsSync
+    } catch is CancellationError {
+      if generation == mailboxGeneration, !cloudMirror.enabled { cloudStatus = "Paused · your existing cloud copy is kept" }
+    } catch {
+      if generation == mailboxGeneration { cloudStatus = error.localizedDescription }
     }
   }
 }

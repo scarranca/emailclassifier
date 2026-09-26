@@ -1,5 +1,8 @@
 # Cove backend plan
 
+> Implementation update (September 25, 2026): the first opt-in Mac-to-cloud recent-mail pilot is implemented in [backend/README.md](../backend/README.md). PlanetScale tables and Google Cloud API/storage/KMS are provisioned. This is the limited device-upload phase; the larger server Gmail push/worker architecture below remains a future plan. No user mailbox is uploaded until cloud sync is enabled in the signed app.
+
+
 Plan researched 22 September 2026. The user has provisioned PlanetScale `cove` PostgreSQL in AWS us-east-1; MCP read-only discovery confirms it is ready. No Cove backend is deployed, and no email has been uploaded to it.
 
 ## Recommendation

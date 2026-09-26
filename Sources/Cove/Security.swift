@@ -98,6 +98,7 @@ enum Vault {
   private var ready: CheckedContinuation<UInt16, Error>?
   private var timeout: Task<Void, Never>?
   private var access: String?
+  private var identityToken: String?
   private var expiration = Date.distantPast
   private var expectedState = ""
   private var sessions: GoogleSessionStore?
@@ -107,6 +108,7 @@ enum Vault {
     let session: GoogleAccountSession
     let accessToken: String
     let expiration: Date
+    var identityToken: String? = nil
   }
   private func sessionStore() throws -> GoogleSessionStore {
     if let sessions { return sessions }
@@ -161,7 +163,7 @@ enum Vault {
     }
     return Data(bytes).base64URL
   }
-  func connect(includeCalendar: Bool = false) async throws -> PendingConnection {
+  func connect(includeCalendar: Bool = false, includeCloud: Bool = false) async throws -> PendingConnection {
     finishBrowserSignIn(success: false)
     guard GoogleOAuthConfiguration(clientID: clientID).isConfigured else {
       throw CoveError.message("Add a Google Desktop OAuth client ID in Connections first.")
@@ -211,7 +213,8 @@ enum Vault {
     url.queryItems = [
       "client_id": connectingClientID, "redirect_uri": redirect, "response_type": "code",
       "scope": "https://www.googleapis.com/auth/gmail.modify"
-        + (includeCalendar ? " https://www.googleapis.com/auth/calendar.events" : ""),
+        + (includeCalendar ? " https://www.googleapis.com/auth/calendar.events" : "")
+        + (includeCloud ? " openid email" : ""),
       "access_type": "offline", "prompt": "consent", "state": expectedState,
       "code_challenge": OAuthSupport.challenge(for: verifier),
       "code_challenge_method": "S256",
@@ -243,12 +246,13 @@ enum Vault {
         calendarConnected: includeCalendar
           && (result.scope?.contains("https://www.googleapis.com/auth/calendar.events") ?? true)),
       accessToken: result.access_token,
-      expiration: Date().addingTimeInterval(result.expires_in - 60))
+      expiration: Date().addingTimeInterval(result.expires_in - 60), identityToken: result.id_token)
   }
   func commit(_ pending: PendingConnection) throws {
     try sessionStore().commit(pending.session)
     connectionGeneration = UUID()
     access = pending.accessToken
+    identityToken = pending.identityToken
     expiration = pending.expiration
     UserDefaults.standard.set(pending.session.email, forKey: "accountEmail")
     UserDefaults.standard.set(pending.session.calendarConnected, forKey: "calendarConnected")
@@ -331,6 +335,7 @@ enum Vault {
     var refresh_token: String?
     var expires_in: Double
     var scope: String?
+    var id_token: String?
   }
   private func exchange(_ values: [String: String], secret: String) async throws -> Tokens {
     var values = values
@@ -369,6 +374,7 @@ enum Vault {
       else {
         throw CoveError.message("The Google connection changed. Please retry.")
       }
+      identityToken = result.id_token
       access = result.access_token
       expiration = Date().addingTimeInterval(result.expires_in - 60)
       return result.access_token
@@ -399,6 +405,18 @@ enum Vault {
         expiration: Date().addingTimeInterval(result.expires_in - 60)))
     return result.access_token
   }
+  func cloudToken(for email: String) async throws -> String {
+    guard let session = try sessionStore().current else {
+      throw CoveError.message("Reconnect Google to enable cloud sync.")
+    }
+    try session.requireMailbox(email)
+    if identityToken == nil { expiration = .distantPast }
+    _ = try await token()
+    guard let token = identityToken else {
+      throw CoveError.message("Reconnect Google for cloud sync, then enable sync again.")
+    }
+    return token
+  }
   func disconnect() throws {
     if try Vault.read("googleAccountSession") != nil {
       // Also permits disconnecting a corrupt record without decoding it first.
@@ -414,6 +432,7 @@ enum Vault {
     sessions = nil
     cancel()
     access = nil
+    identityToken = nil
     expiration = .distantPast
     UserDefaults.standard.removeObject(forKey: "accountEmail")
     UserDefaults.standard.removeObject(forKey: "calendarConnected")

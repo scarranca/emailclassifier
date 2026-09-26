@@ -21,3 +21,6 @@ __pycache__/
 *.py[cod]
 
 site/downloads/*.dmg
+
+backend/node_modules/
+backend/coverage/

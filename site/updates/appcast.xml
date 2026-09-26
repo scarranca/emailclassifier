@@ -6,6 +6,23 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Cove</title>
         <item>
+            <title>0.1.39</title>
+            <pubDate>Fri, 25 Sep 2026 22:42:19 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>41</sparkle:version>
+            <sparkle:shortVersionString>0.1.39</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>An optional cloud copy of recent mail</h2>
+<ul>
+<li>Private pilot accounts can enable Cloud sync in Settings. Your Mac mirrors up to 1,000 downloaded emails from the last 30 days, including labels and Jev results.</li>
+<li>See sync progress, pause uploads, or remove the cloud copy. Cloud sync starts off and requires your Google sign-in and consent.</li>
+<li>Drafts, attachments, Spam, Trash and Google refresh tokens stay out of the cloud mirror. Large bodies are shortened.</li>
+<li>This is the foundation for mobile access. Sync still runs while Cove is open on your Mac; a mobile app and server-side Gmail retrieval are not included yet.</li>
+</ul>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.39.dmg" length="16740314" type="application/octet-stream" sparkle:edSignature="ywfWT2cXXilgknc6EtY7f7n2B1PBh0eHLCX4nXV6WGYBzxrM/9iRwdeWsvHjfBLhak4d15RMkUZQlmWU5FdRAg=="/>
+        </item>
+        <item>
             <title>0.1.38</title>
             <pubDate>Fri, 25 Sep 2026 21:55:30 -0700</pubDate>
             <link>https://covemail.xyz/beta/</link>
@@ -37,25 +54,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://covemail.xyz/downloads/Cove-0.1.37.dmg" length="16435713" type="application/octet-stream" sparkle:edSignature="CveoLhIcE8LBhe2Fk8acFSFL+ubbUAJkDi1C3/RR1VpwyUTirFuqYrS7lcuGlpwpaEOk15vJL4kGukR//QXGDg=="/>
         </item>
-        <item>
-            <title>0.1.36</title>
-            <pubDate>Fri, 25 Sep 2026 14:13:23 -0700</pubDate>
-            <link>https://covemail.xyz/beta/</link>
-            <sparkle:version>38</sparkle:version>
-            <sparkle:shortVersionString>0.1.36</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>Connection updates without interruptions</h2>
-<ul>
-<li>Temporary connection failures now appear as a small status tag at the bottom-left instead of a blocking popup.</li>
-<li>Click the tag for details, retry a failed mail sync, or dismiss it. Downloaded mail stays available and successful retries clear the matching notice.</li>
-<li>Repeated failures stay quiet. Important warnings, including unconfirmed sends and certificate errors, remain explicit.</li>
-</ul>
-]]></description>
-            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.36.dmg" length="16459982" type="application/octet-stream" sparkle:edSignature="hIPfXSMgkV6ZpgVVPjNvz9KvZO6Wpxg0V24LY9xPnNMxLkZ43LEyxYb5fUJebTRVEQDMQO9op6p83K/RrhqRBA=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: DfrAf0rb6nVPghoGMX2s5ewDwBwFME2++VzSDEbtlPdeEE7H3xdIOE6cIW2FESqEXlCVyKs/U6lb8c8XUa9JDA==
-length: 3761
+edSignature: BtxG9+bWRDymN4cqyMdwIoUa8u2noisU8pTw6HT58CcSZzEUE/mTX7Gkg1lB7gvBbyxwp+LBaHUXgJiXCVoPCQ==
+length: 3951
 -->

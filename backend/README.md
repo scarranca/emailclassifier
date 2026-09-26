@@ -1,0 +1,62 @@
+# Cove recent-mail cloud pilot
+
+Status: first device-upload API, not server-side Gmail processing. The Mac is the only uploader; future mobile clients can consume the read API. Off by default, with explicit Google sign-in and cloud consent. Public API origin is in `../assets/cloud-sync-config.json`. Deployment is confined to Google project `cove-mail-20260922`, region `us-east1`, and PlanetScale `santiagocarranc2/cove/main`.
+
+## Data and limits
+
+The Mac mirrors at most 1,000 downloaded non-draft/non-Spam/non-Trash messages received in the last 30 days. It uploads labels, headers, bodies and existing Jev decisions. Local drafts, attachments, snoozes, contact notes, calendar events and credentials are excluded. Plain text and HTML are truncated to 48/96 KB, with further truncation to keep encoded JSON below 200 KB per message. The API accepts four-message Mac batches (server maximum five), at most 25 deletions and 1 MiB requests. It has a 5,000-row lifetime pilot limit including tombstones; remove/reconnect the cloud copy to reset that limit. This is not an unlimited archive.
+
+Postgres stores IDs, dates, labels, ordered revisions, tombstones and encrypted headers/decisions. Bodies live as immutable random-named encrypted Google Cloud Storage objects. Each account generation has a random AES-256-GCM data key wrapped by Cloud KMS using the account UUID as associated data. Message ciphertext binds account, message and content kind. Content/body fingerprints in the server DB use keyed HMAC; the Mac's SHA-256 checkpoint is in its encrypted local database. Keys are server-accessible: this is **not end-to-end encryption**.
+
+Bodies become unavailable 30 days after receipt. The private bucket deletes objects after 30 days from creation, including objects orphaned by retries/conflicts. Deleted account/message objects can remain as ciphertext until lifecycle cleanup. Cloud removal deletes live account/key records and cascading message/receipt rows; DB backups follow provider retention and are not purged by that endpoint. Pausing or disconnecting Gmail keeps the cloud copy. Local erasure is separate from cloud erasure.
+
+## Authentication and isolation
+
+Google ID tokens are verified for signature, issuer, expiry, configured OAuth audiences, verified authoritative Google email, authorized party and the explicit private-pilot email allowlist. Google `sub` selects the tenant; no request may choose a tenant. Tokens are not persisted or logged. Google refresh tokens never leave the Mac.
+
+The runtime LOGIN role is separately provisioned, inherits only `cove_sync_runtime`, and must not own tables or have superuser/BYPASSRLS. Startup checks enforce this. Every request transaction uses parameterized `SET LOCAL` identity, and all tables have forced row-level security with both USING and WITH CHECK. All SQL values are bound parameters. Runtime permissions are DML only, without schema modification. The pool is limited to two verified-TLS connections per instance with connection/query/lock/idle transaction timeouts. URL SSL flags that override TLS verification are rejected.
+
+A per-account row lock allocates revisions in commit order. Optimistic base revisions reject stale concurrent writes. Request UUIDs and keyed payload receipts make network retries idempotent, including identical retries after the cursor advanced. Receipts are cleaned after seven days on writes; content hashes also avoid duplicate upserts and unnecessary body objects. Account UUID generations fence deletion/reconnection against in-flight old uploads. The Mac persists a checkpoint after each batch; a lost response is reconciled against the server cursor and unchanged-content deduplication on retry.
+
+The pilot supports one authoritative uploading Mac. It does not implement multiwriter conflict merging, mobile mail mutations, server Gmail refresh tokens, Gmail push notifications, server-side Jev, or draft synchronization. Do not turn on another uploading Mac as if multi-device mutation were supported.
+
+## API contract
+
+Every route except `GET /v1/status` requires `Authorization: Bearer <Google ID token>`. HTTPS only, no redirects, no public storage objects, no CORS/browser credential flow. API responses use `Cache-Control: no-store`. Errors are short codes without provider payloads. Request and SQL contents are not logged by application code; managed request logs still contain request metadata.
+
+- `POST /v1/connection` with `{"consentVersion":"cloud-mail-v1"}` returns `{accountID, revision}` and explicitly creates/reuses the cloud account.
+- `GET /v1/connection` returns that account and current revision; it never creates an account.
+- `POST /v1/messages/batch` with `{accountID, requestID, baseRevision, messages, deletedIDs}` returns `{revision}`. Wire types are in `src/api.js` and `Sources/CoveCore/CloudMailSync.swift`. Revision strings avoid JavaScript integer precision loss.
+- `GET /v1/messages/changes?accountID=<uuid>&after=0` returns `{accountID,cursor,hasMore,messages}` (100 at a time). Active rows include metadata, labels, date and bodyAvailable; tombstones include id/revision/deleted. Persist data and cursor atomically; continue while hasMore. Never paginate by date.
+- `GET /v1/messages/<id>/body?accountID=<uuid>` returns `{text,html?,truncated}` while available.
+- `DELETE /v1/connection` with `{accountID}` removes only the verified caller's matching account generation. Requires the user's cloud-removal action; it does not touch Gmail.
+
+Relevant errors: `authentication_required` (401), `cloud_not_connected` (404), `connection_changed`, `revision_conflict`, `request_id_reused`, `pilot_storage_limit` (409), `rate_limited` (429), `temporarily_unavailable` (503). An account generation change requires reconnection/full bootstrap; a read cursor is only valid within that generation. Server caps are intentionally separate from the smaller client mirror cap.
+
+## Local tests
+
+Use a dedicated disposable loopback Postgres fixture on port 55439, never PlanetScale. The tests recreate only that synthetic schema/roles:
+
+```sh
+docker run --name cove-sync-test -e POSTGRES_PASSWORD=cove-synthetic-test -p 127.0.0.1:55439:5432 -d postgres:17
+cd backend
+npm ci --ignore-scripts
+npm test
+```
+
+`npm test` covers verified identity policy, encryption/AAD tampering, pooled RLS tenant isolation, concurrent revisions, idempotent retries, paginated change feeds, deletion tombstones, account removal during upload and body expiry. Swift tests cover bounded/allowlisted serialization, forbidden payload fields, Unicode/JSON expansion, HTTPS-only transport, safe error display, saved pause state, and an offscreen settings render. No real mail is used.
+
+The pinned `gaxios@6.7.1` UUID override addresses the transitive uuid advisory while retaining CommonJS compatibility. `npm audit --omit=dev` has zero findings at preparation time; audit again when dependencies change.
+
+## Deployment and operations
+
+1. Review/apply `migrations/001_sync.sql` with a migration credential. PlanetScale MCP requires human approval of exact DDL. Applied September 25, 2026 after approval. Its prepared-query tool allows one statement per call, so the approved statements were applied sequentially and each result checked, not as one transaction. All three policies/tables were then verified. Never run migrations from the API service.
+2. `infra/provision.sh` creates the dedicated runtime service account, private US-east1 bucket (uniform access, public-access prevention, lifecycle, no soft delete), KMS key, Secret Manager secret and Artifact Registry repository. Runtime receives key-specific encrypt/decrypt, bucket-specific create/read, and secret-specific access. It has no project Editor role. Provisioning is intended only for these dedicated resources.
+3. Use PlanetScale CLI to create a new LOGIN role with no inherited roles, then grant `cove_sync_runtime` to its actual Postgres role name. Validate it with `assertRuntimeRole` and verified TLS before adding a Secret Manager version. Do not put admin credentials, a database URL or cloud service-account keys in the desktop app/repository. Keep credentials local and suppress CLI output that contains newly generated passwords.
+4. Prepare local YAML with `GOOGLE_CLIENT_IDS`, `PILOT_EMAILS`, `CONTENT_KMS_KEY` and `BODY_BUCKET`. Keep the allowlist narrow. Run `infra/deploy.sh` with `COVE_SYNC_ENV_FILE` and pinned `COVE_DB_SECRET_VERSION`. API uses Google workload identity; no static Google key file. All gcloud commands explicitly select the Cove project, leaving the user's global project unchanged.
+5. Run `infra/verify.sh` using the same config. The one-shot Cloud Run job tests actual KMS associated data, encrypted object round-trip and live runtime RLS inside a rolled-back synthetic transaction. It leaves only one tiny synthetic ciphertext object for automatic lifecycle cleanup. No scheduled executions are configured.
+6. Verify `/v1/status` returns 200 and both missing/forged credentials return 401. `/healthz` is reserved upstream on Cloud Run and is not the public health route. Complete the real Google consent/upload check through the signed Mac app; do not extract its refresh token for testing.
+
+Cloud Run uses request-based CPU, 512 MiB, min 0, service/revision max 2 and concurrency 8. Nominal API DB capacity is four pool connections across two instances; deployments and the one-shot test can temporarily add more. Per-instance rate maps are bounded (60 requests/min/account, 120/min/IP); they are not a distributed quota. Max instances is a scaling control, not a hard spending cap. Cloud Build, artifacts, KMS, Secret Manager, bucket storage/operations, cross-cloud transfer and PlanetScale can incur charges. No Redis, always-on worker, Scheduler or Pub/Sub is provisioned in this phase.
+
+Rollback: disable cloud sync in the Mac, or restrict/disable the API's Cloud Run ingress while keeping the DB/key/bucket for recovery. Do not destroy KMS keys as a rollback. Re-deploy a known image with the same pinned secret/config; the Mac remains usable with local/Gmail data. Future background ingestion needs a separately reviewed server OAuth flow, Gmail watch/history processing, durable jobs, deletion retention policy and mobile authentication audiences.

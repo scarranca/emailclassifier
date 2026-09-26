@@ -64,6 +64,10 @@ struct SettingsView: View {
                     Text("Reading").font(.coveSection)
                   }.id("Reading")
                   Divider()
+                  if store.cloudConfigured {
+                    CloudSyncSettings(store: store).id("Cloud sync")
+                    Divider()
+                  }
                   privacySection
                   Divider()
                   AppUpdateSettings().id("App updates")
