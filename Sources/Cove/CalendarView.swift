@@ -3,7 +3,7 @@ import CoveCore
 import SwiftUI
 
 /// Calendar guides recede behind events; Increase Contrast restores stronger structure.
-private struct CalendarRule: View {
+struct CalendarRule: View {
   var vertical = false
   var secondary = false
   @Environment(\.colorSchemeContrast) private var contrast
@@ -21,17 +21,24 @@ struct CalendarView: View {
   @Bindable var store: AppStore
   @State private var eventDraft: CalendarEventDraft?
   @State private var deleteTarget: LocalEvent?
-  @State private var fullWeek = false
+  @State private var displayMode: CalendarDisplayMode
+  @State private var scrollRequest = 0
+
+  init(store: AppStore, mode: CalendarDisplayMode = .workweek) {
+    self.store = store
+    _displayMode = State(initialValue: mode)
+  }
   @State private var showingSearch = false
   @AppStorage("calendar.agendaWidth") private var preferredAgendaWidth = 280.0
   private let focusSuggestionID = "cove-focus-suggestion"
   private var week: [Date] {
     let calendar = Calendar.current
     let monday = CalendarAgenda.weekStart(containing: store.calendarDay)
-    return (0..<(fullWeek ? 7 : 5)).compactMap {
+    return (0..<(displayMode == .week ? 7 : 5)).compactMap {
       calendar.date(byAdding: .day, value: $0, to: monday)
     }
   }
+  private var visibleRange: DateInterval { displayMode.range(containing: store.calendarDay) }
   private var selected: LocalEvent? { store.events.first { $0.id == store.calendarEventID } }
   var body: some View {
     VStack(spacing: 0) {
@@ -76,100 +83,15 @@ struct CalendarView: View {
         let agendaWidth = CalendarLayout.agendaWidth(
           preferred: preferredAgendaWidth, available: geometry.size.width)
         HStack(spacing: 0) {
-          VStack(spacing: 0) {
-            HStack(spacing: 0) {
-              Text(TimeZone.current.abbreviation() ?? "").font(.cove(size: 9)).foregroundStyle(
-                Palette.muted
-              ).frame(width: 52)
-              ForEach(week, id: \.self) { day in
-                Button {
-                  store.selectCalendarDay(day)
-                } label: {
-                  VStack(spacing: 10) {
-                    Text(day, format: .dateTime.weekday(.abbreviated)).font(.cove(size: 11))
-                      .foregroundStyle(Palette.muted)
-                    Text(day, format: .dateTime.day()).font(.cove(size: 20, weight: .medium)).frame(
-                      width: 34, height: 34
-                    ).background(
-                      Calendar.current.isDateInToday(day) ? Palette.ink : .clear, in: Circle()
-                    ).foregroundStyle(Calendar.current.isDateInToday(day) ? .white : Palette.ink)
-                  }.frame(maxWidth: .infinity).padding(.vertical, 15)
-                    .background(
-                      Calendar.current.isDate(day, inSameDayAs: store.calendarDay)
-                        ? Palette.surface : .clear)
-                }.buttonStyle(.plain)
-                  .accessibilityLabel("Select " + day.formatted(date: .complete, time: .omitted))
-              }
+          Group {
+            if displayMode == .month {
+              CalendarMonthView(events: store.visibleEvents, day: store.calendarDay,
+                selectedID: store.calendarEventID,
+                selectDay: { store.selectCalendarDay($0) },
+                selectEvent: { event, day in select(event, on: day) })
+            } else {
+              weekGrid
             }
-            CalendarRule()
-            HStack(spacing: 0) {
-              Text("all-day").font(.cove(size: 9)).foregroundStyle(Palette.muted).frame(width: 52)
-              ForEach(week, id: \.self) { day in
-                VStack(spacing: 4) {
-                  ForEach(
-                    store.visibleEvents.filter {
-                      $0.allDay == true
-                        && $0.start < Calendar.current.date(byAdding: .day, value: 1, to: day)!
-                        && $0.end > day
-                    }
-                  ) { event in
-                    CalendarAllDayEvent(event: event, selected: store.calendarEventID == event.id) {
-                      select(event, on: day)
-                    }
-                  }
-                }.frame(maxWidth: .infinity, minHeight: 32).padding(4)
-                  .overlay(alignment: .leading) { CalendarRule(vertical: true) }
-              }
-            }
-            CalendarRule()
-            ScrollViewReader { proxy in
-              ScrollView {
-                HStack(alignment: .top, spacing: 0) {
-                  VStack(spacing: 0) {
-                    ForEach(0..<24) { hour in
-                      Text(
-                        hour == 0
-                          ? "12 AM"
-                          : hour < 12 ? "\(hour) AM" : hour == 12 ? "12 PM" : "\(hour-12) PM"
-                      ).font(.cove(size: 10)).foregroundStyle(Palette.muted).frame(
-                        width: 52, height: CalendarEventLayout.hourHeight, alignment: .top
-                      ).offset(y: 5).id(hour)
-                    }
-                  }
-                  ForEach(week, id: \.self) { day in
-                    CalendarDayColumn(
-                      events: gridEvents, day: day, selectedID: store.calendarEventID,
-                      suggestionID: focusSuggestionID
-                    ) { event in
-                      if event.id == focusSuggestionID {
-                        reviewFocus(DateInterval(start: event.start, end: event.end))
-                      } else {
-                        select(event, on: day)
-                      }
-                    }
-                    .frame(height: CalendarEventLayout.hourHeight * 24)
-                    .frame(maxWidth: .infinity)
-                  }
-                }
-              }
-              .onAppear { proxy.scrollTo(8, anchor: .top) }
-              .onChange(of: store.calendarEventID) { _, _ in
-                if let event = selected, event.allDay != true {
-                  let hour =
-                    event.start < store.calendarDay
-                    ? 0
-                    : max(0, Calendar.current.component(.hour, from: event.start) - 1)
-                  proxy.scrollTo(hour, anchor: .top)
-                }
-              }
-            }
-            CalendarRule()
-            Text(
-              store.calendarConnected && !store.isSample
-                ? "Google Calendar · primary calendar" : "Calendar events stay on this Mac"
-            ).font(.cove(size: 11)).foregroundStyle(Palette.muted).frame(
-              maxWidth: .infinity, alignment: .leading
-            ).padding(18)
           }.frame(minWidth: 340, maxWidth: .infinity)
           CalendarAgendaDivider(width: $preferredAgendaWidth, available: geometry.size.width)
           ScrollView {
@@ -262,7 +184,7 @@ struct CalendarView: View {
         }.coordinateSpace(name: "calendarPanes")
       }
     }
-    .task(id: week[0]) { await refresh() }
+    .task(id: visibleRange) { await refresh() }
     .onChange(of: store.showNewEvent, initial: true) { _, value in
       if value {
         newEvent()
@@ -270,13 +192,13 @@ struct CalendarView: View {
       }
     }
     .onChange(of: store.calendarDay, initial: true) { _, day in
-      if Calendar.current.isDateInWeekend(day) { fullWeek = true }
+      if displayMode == .workweek && Calendar.current.isDateInWeekend(day) { displayMode = .week }
     }
     .onChange(of: store.showLocalCalendar) { _, _ in clearHiddenSelection() }
     .onChange(of: store.hiddenLocalCalendars) { _, _ in clearHiddenSelection() }
     .onChange(of: store.showGoogleCalendar) { _, _ in clearHiddenSelection() }
-    .onChange(of: fullWeek) { _, value in
-      if !value && Calendar.current.isDateInWeekend(store.calendarDay) {
+    .onChange(of: displayMode) { _, value in
+      if value == .workweek && Calendar.current.isDateInWeekend(store.calendarDay) {
         store.selectCalendarDay(CalendarAgenda.weekStart(containing: store.calendarDay))
       }
     }
@@ -299,6 +221,105 @@ struct CalendarView: View {
       CalendarEventEditor(store: store, draft: draft)
     }
   }
+  private func scrollToTime(_ proxy: ScrollViewProxy) {
+    proxy.scrollTo(CalendarLayout.scrollHour(now: Date(), selected: selected, on: store.calendarDay), anchor: .top)
+  }
+  private var weekGrid: some View {
+    VStack(spacing: 0) {
+      HStack(spacing: 0) {
+        Text(TimeZone.current.abbreviation() ?? "").font(.cove(size: 9)).foregroundStyle(
+          Palette.muted
+        ).frame(width: 52)
+        ForEach(week, id: \.self) { day in
+          Button {
+            store.selectCalendarDay(day)
+          } label: {
+            VStack(spacing: 10) {
+              Text(day, format: .dateTime.weekday(.abbreviated)).font(.cove(size: 11))
+                .foregroundStyle(Palette.muted)
+              Text(day, format: .dateTime.day()).font(.cove(size: 20, weight: .medium)).frame(
+                width: 34, height: 34
+              ).background(
+                Calendar.current.isDateInToday(day) ? Palette.ink : .clear, in: Circle()
+              ).foregroundStyle(Calendar.current.isDateInToday(day) ? .white : Palette.ink)
+            }.frame(maxWidth: .infinity).padding(.vertical, 15)
+              .background(
+                Calendar.current.isDate(day, inSameDayAs: store.calendarDay)
+                  ? Palette.surface : .clear)
+          }.buttonStyle(.plain)
+            .accessibilityLabel("Select " + day.formatted(date: .complete, time: .omitted))
+        }
+      }
+      CalendarRule()
+      HStack(spacing: 0) {
+        Text("all-day").font(.cove(size: 9)).foregroundStyle(Palette.muted).frame(width: 52)
+        ForEach(week, id: \.self) { day in
+          VStack(spacing: 4) {
+            ForEach(
+              store.visibleEvents.filter {
+                $0.allDay == true
+                  && $0.start < Calendar.current.date(byAdding: .day, value: 1, to: day)!
+                  && $0.end > day
+              }
+            ) { event in
+              CalendarAllDayEvent(event: event, selected: store.calendarEventID == event.id) {
+                select(event, on: day)
+              }
+            }
+          }.frame(maxWidth: .infinity, minHeight: 32).padding(4)
+            .overlay(alignment: .leading) { CalendarRule(vertical: true) }
+        }
+      }
+      CalendarRule()
+      ScrollViewReader { proxy in
+        ScrollView {
+          HStack(alignment: .top, spacing: 0) {
+            VStack(spacing: 0) {
+              ForEach(0..<24) { hour in
+                Text(
+                  hour == 0
+                    ? "12 AM"
+                    : hour < 12 ? "\(hour) AM" : hour == 12 ? "12 PM" : "\(hour-12) PM"
+                ).font(.cove(size: 10)).foregroundStyle(Palette.muted).frame(
+                  width: 52, height: CalendarEventLayout.hourHeight, alignment: .top
+                ).offset(y: 5).id(hour)
+              }
+            }
+            ForEach(week, id: \.self) { day in
+              CalendarDayColumn(
+                events: gridEvents, day: day, selectedID: store.calendarEventID,
+                suggestionID: focusSuggestionID
+              ) { event in
+                if event.id == focusSuggestionID {
+                  reviewFocus(DateInterval(start: event.start, end: event.end))
+                } else {
+                  select(event, on: day)
+                }
+              }
+              .frame(height: CalendarEventLayout.hourHeight * 24)
+              .frame(maxWidth: .infinity)
+            }
+          }
+        }
+        .onAppear { scrollToTime(proxy) }
+        .onChange(of: scrollRequest) { _, _ in
+          proxy.scrollTo(CalendarLayout.scrollHour(now: Date(), on: store.calendarDay), anchor: .top)
+        }
+        .onChange(of: week[0]) { _, _ in scrollToTime(proxy) }
+        .onChange(of: store.calendarEventID) { _, _ in
+          if let selected, selected.allDay != true { scrollToTime(proxy) }
+        }
+      }
+      CalendarRule()
+      Text(
+        store.calendarConnected && !store.isSample
+          ? "Google Calendar · primary calendar" : "Calendar events stay on this Mac"
+      ).font(.cove(size: 11)).foregroundStyle(Palette.muted).frame(
+        maxWidth: .infinity, alignment: .leading
+      ).padding(18)
+    }
+  }
+
   private var calendarHeading: some View {
     HStack(spacing: 20) {
       Text("Calendar").font(.coveTitle)
@@ -310,21 +331,26 @@ struct CalendarView: View {
   private var calendarControls: some View {
     HStack(spacing: 16) {
       CoveMenuPicker(
-        "Calendar view", selection: $fullWeek,
-        options: [(false, "Workweek"), (true, "Week")]
+        "Calendar view", selection: $displayMode,
+        options: CalendarDisplayMode.allCases.map { ($0, $0.title) }
       )
       .frame(width: 124)
-      Button("Today") { store.selectCalendarDay(Date()) }.buttonStyle(SecondaryButton())
+      Button("Today") {
+        store.selectCalendarDay(Date())
+        scrollRequest += 1
+      }.buttonStyle(SecondaryButton())
       Button {
-        moveWeek(-1)
+        movePeriod(-1)
       } label: {
         Image(systemName: "chevron.left")
-      }.buttonStyle(.plain).help("Previous week").accessibilityLabel("Previous week")
+      }.buttonStyle(.plain).help(displayMode == .month ? "Previous month" : "Previous week")
+        .accessibilityLabel(displayMode == .month ? "Previous month" : "Previous week")
       Button {
-        moveWeek(1)
+        movePeriod(1)
       } label: {
         Image(systemName: "chevron.right")
-      }.buttonStyle(.plain).help("Next week").accessibilityLabel("Next week")
+      }.buttonStyle(.plain).help(displayMode == .month ? "Next month" : "Next week")
+        .accessibilityLabel(displayMode == .month ? "Next month" : "Next week")
       Button {
         newEvent()
       } label: {
@@ -431,10 +457,8 @@ struct CalendarView: View {
       store.calendarEventID = nil
     }
   }
-  private func moveWeek(_ amount: Int) {
-    if let day = Calendar.current.date(byAdding: .day, value: amount * 7, to: store.calendarDay) {
-      store.selectCalendarDay(day)
-    }
+  private func movePeriod(_ amount: Int) {
+    store.selectCalendarDay(displayMode.moved(amount, from: store.calendarDay))
   }
   private func newEvent() {
     let start = Calendar.current.date(
@@ -444,7 +468,7 @@ struct CalendarView: View {
   }
   func refresh() async {
     await store.syncCalendar(
-      from: week[0], to: Calendar.current.date(byAdding: .day, value: 7, to: week[0])!)
+      from: visibleRange.start, to: visibleRange.end)
   }
 }
 

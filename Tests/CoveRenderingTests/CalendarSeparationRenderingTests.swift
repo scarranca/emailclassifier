@@ -63,6 +63,32 @@ import XCTest
     XCTAssertEqual(store.events.count, events.count + 2, "Rendering never edits the user's calendar")
   }
 
+  func testMonthRendersAtCompactAndWideWidths() async throws {
+    _ = NSApplication.shared
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let database = try Database(url: directory.appendingPathComponent("month.sqlite"))
+    let store = try AppStore(database: database, accountEmail: "calendar@example.com",
+      gmail: GmailClient(), gmailTokenProvider: { "synthetic" }, syncClock: { self.day })
+    store.calendarDay = day
+    store.events = events
+    var allDay = event("Launch week", 0, 4320); allDay.allDay = true
+    store.events.append(allDay)
+    for width in [CGFloat(816), 1280] {
+      let host = NSHostingView(rootView: CalendarView(store: store, mode: .month)
+        .background(Palette.canvas).foregroundStyle(Palette.ink))
+      let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: width == 816 ? 700 : 980),
+        styleMask: [.borderless], backing: .buffered, defer: false)
+      window.isReleasedWhenClosed = false; window.contentView = host
+      defer { window.close() }
+      for _ in 0..<10 { host.layoutSubtreeIfNeeded(); try await Task.sleep(for: .milliseconds(30)) }
+      let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+      host.cacheDisplay(in: host.bounds, to: bitmap)
+      try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: "/tmp/cove-calendar-month-\(Int(width)).png"))
+      XCTAssertEqual(store.events.count, events.count + 1)
+    }
+  }
+
   func testHostedCalendarSeparatesAdjacentOverlappingAndAllDayEvents() async throws {
     _ = NSApplication.shared
     for width in [CGFloat(680), 1024] {

@@ -26,6 +26,20 @@ final class CalendarSyncTests: XCTestCase {
     store.calendarDay = day
     return (store, db)
   }
+  func testMonthViewSyncsEveryVisibleDayIncludingAdjacentMonths() async throws {
+    let http = CalendarHTTP()
+    let (store, _) = try fixture(http)
+    await CalendarView(store: store, mode: .month).refresh()
+    let requestURL = await http.lastURL
+    let components = try XCTUnwrap(URLComponents(url: XCTUnwrap(requestURL), resolvingAgainstBaseURL: false))
+    let query = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value ?? "") })
+    let expected = CalendarDisplayMode.month.range(containing: day)
+    let formatter = ISO8601DateFormatter()
+    XCTAssertEqual(query["timeMin"].flatMap(formatter.date(from:)), expected.start)
+    XCTAssertEqual(query["timeMax"].flatMap(formatter.date(from:)), expected.end)
+    XCTAssertTrue(store.calendarAvailabilityReady)
+  }
+
   func testSyncWaitsForBusyWorkAndPublishesPersistedCoverage() async throws {
     let http = CalendarHTTP()
     let (store, db) = try fixture(http)
@@ -211,12 +225,14 @@ private actor CalendarHTTP: HTTPTransport {
   private let started: XCTestExpectation?
   private var pending: CheckedContinuation<Void, Never>?
   private(set) var count = 0
+  private(set) var lastURL: URL?
   init(status: Int = 200, started: XCTestExpectation? = nil) {
     self.status = status
     self.started = started
   }
   func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
     count += 1
+    lastURL = request.url
     XCTAssertEqual(request.httpMethod, "GET")
     XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-token")
     if count == 1, let started {

@@ -8,7 +8,36 @@ public struct EventPlacement: Identifiable {
   public var column: Int
   public var columns: Int
 }
+public enum CalendarDisplayMode: String, CaseIterable {
+  case workweek, week, month
+  public var title: String {
+    switch self { case .workweek: return "Workweek"; case .week: return "Week"; case .month: return "Month" }
+  }
+  public func range(containing day: Date, calendar: Calendar = .current) -> DateInterval {
+    let start = self == .month
+      ? CalendarAgenda.monthDays(containing: day, calendar: calendar).first!
+      : CalendarAgenda.weekStart(containing: day, calendar: calendar)
+    return DateInterval(start: start, end: calendar.date(byAdding: .day, value: self == .month ? 42 : 7, to: start)!)
+  }
+  public func moved(_ amount: Int, from day: Date, calendar: Calendar = .current) -> Date {
+    // Month navigation starts on day one so January 31 -> February -> March never skips a month.
+    let start = self == .month ? calendar.dateInterval(of: .month, for: day)!.start : day
+    return calendar.date(byAdding: self == .month ? .month : .day,
+                         value: self == .month ? amount : amount * 7, to: start) ?? day
+  }
+}
+
 public enum CalendarLayout {
+  /// Leave one hour of context above now or a selected timed event; never continuously follow the clock.
+  public static func scrollHour(now: Date, selected: LocalEvent? = nil, on day: Date,
+                                calendar: Calendar = .current) -> Int {
+    if let selected, selected.allDay != true {
+      if selected.start < calendar.startOfDay(for: day) { return 0 }
+      return max(0, calendar.component(.hour, from: selected.start) - 1)
+    }
+    return max(0, calendar.component(.hour, from: now) - 1)
+  }
+
   public static let agendaDividerWidth = 12.0
 
   /// Preserve the grid's usable width while keeping the agenda inside its readable bounds.

@@ -89,3 +89,7 @@ Conditional agents (0.1.20) extend the existing editor with ordered When/Then ru
 ### Calendar line hierarchy
 
 Calendar guides use the existing line token at 50% opacity; half-hour guides use 22%. Event outlines use the line token instead of the input border, with stronger hover/selection states. Increase Contrast restores full guide opacity and stronger event borders. Text, event hit areas, layout, and the current-time marker retain their existing treatment.
+
+### Calendar month and current time
+
+The view selector offers Workweek, Week, and Month. Month uses a Monday-first six-week grid with selected-day agenda, all-day pills, compact event previews, and an overflow action to show the full day. Narrow grids prioritize titles; event details and times remain available in the agenda. Sync covers all 42 visible days, including adjacent-month dates. Week grids scroll near the current local time on entry and Today; selecting a timed event takes priority. Scrolling remains under user control between navigation actions.
