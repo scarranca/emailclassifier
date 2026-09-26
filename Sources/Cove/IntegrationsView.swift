@@ -26,8 +26,9 @@ struct IntegrationsView: View {
   @AppStorage("integrations.writingExpanded") private var writingExpanded = true
   @State private var connectionExpanded = false
 
-  init(store: AppStore, settings: AIProviderSettings? = nil, initialProvider: AIProvider? = nil) {
+  init(store: AppStore, settings: AIProviderSettings? = nil, initialProvider: AIProvider? = nil, upcomingExpanded: Bool = false) {
     self.store = store
+    _upcomingExpanded = State(initialValue: upcomingExpanded)
     let settings = settings ?? .shared
     _settings = State(initialValue: settings)
     _claude = State(initialValue: settings.claude)
@@ -38,9 +39,9 @@ struct IntegrationsView: View {
     VStack(alignment: .leading, spacing: 0) {
       HStack(alignment: .center, spacing: 24) {
         VStack(alignment: .leading, spacing: 8) {
-          Text("Integrations").font(.cove(size: 26, weight: .medium))
+          Text("Integrations").font(.cove(size: 24, weight: .medium))
           Text("Choose what powers your writing and chat.")
-            .font(.coveBody).foregroundStyle(Palette.body)
+            .font(.cove(size: 13)).foregroundStyle(Palette.body)
         }
         Spacer(minLength: 0)
         Button(writingExpanded || upcomingExpanded ? "Collapse all" : "Expand all") {
@@ -52,19 +53,20 @@ struct IntegrationsView: View {
       Divider()
       GeometryReader { _ in
         ScrollView {
-          VStack(alignment: .leading, spacing: 24) {
+          VStack(alignment: .leading, spacing: 20) {
             writingPanel
             DisclosureGroup("More integrations · Coming later", isExpanded: $upcomingExpanded) {
-              VStack(alignment: .leading, spacing: 16) {
+              VStack(alignment: .leading, spacing: 12) {
                 Label("Google Tasks · Lists and due dates", systemImage: "checklist")
                 Label("GitHub · Assigned issues", systemImage: "chevron.left.forwardslash.chevron.right")
-                Text("These tools are not connected yet. Manage Gmail and Calendar in Settings.")
-                  .foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
-              }.font(.coveBody)
-            }.font(.cove(size: 14, weight: .medium)).disclosureGroupStyle(CoveDisclosureStyle())
+                Text("Not available yet. Gmail and Calendar are in Settings.")
+                  .font(.coveMetadata).foregroundStyle(Palette.body)
+                  .fixedSize(horizontal: false, vertical: true)
+              }.font(.cove(size: 12)).foregroundStyle(Palette.body)
+            }.font(.coveControl).disclosureGroupStyle(CoveDisclosureStyle())
               .padding(.horizontal, 4)
-            Label("Your connections stay under your control. Disconnect an account anytime.", systemImage: "lock.shield")
-              .font(.cove(size: 13)).foregroundStyle(Palette.body)
+            Label("You control your connections. Disconnect anytime.", systemImage: "lock.shield")
+              .font(.coveMetadata).foregroundStyle(Palette.body)
           }.frame(maxWidth: 800, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading).padding(32)
         }
@@ -110,20 +112,20 @@ struct IntegrationsView: View {
     HStack(spacing: 10) {
       Text(number).font(.cove(size: 12, weight: .medium))
         .frame(width: 24, height: 24).background(Palette.sidebar, in: Circle())
-      Text(title).font(.cove(size: 15, weight: .medium))
+      Text(title).font(.cove(size: 14, weight: .medium))
     }.accessibilityElement(children: .combine)
   }
 
   private var writingContent: some View {
-    VStack(alignment: .leading, spacing: 24) {
+    VStack(alignment: .leading, spacing: 20) {
       if !settings.model(settings.provider).isEmpty {
         HStack(spacing: 10) {
           Image(systemName: "slider.horizontal.3").font(.cove(size: 18))
           VStack(alignment: .leading, spacing: 4) {
-            Text("Saved default").font(.cove(size: 13)).foregroundStyle(Palette.body)
+            Text("Saved default").font(.cove(size: 12)).foregroundStyle(Palette.body)
             Text(settings.modelLabel(settings.model(settings.provider), provider: settings.provider))
-              .font(.cove(size: 14, weight: .medium))
-            Text(settings.provider.title).font(.cove(size: 13)).foregroundStyle(Palette.body)
+              .font(.cove(size: 13, weight: .medium))
+            Text(settings.provider.title).font(.cove(size: 12)).foregroundStyle(Palette.body)
           }
           Spacer(minLength: 0)
         }.padding(14).frame(maxWidth: .infinity, alignment: .leading)
@@ -138,12 +140,12 @@ struct IntegrationsView: View {
         Text(selectedProvider.isSubscription
           ? "Use your existing subscription. Your plan’s limits apply."
           : "Use an API key. Usage is billed separately by the provider.")
-          .font(.cove(size: 13)).foregroundStyle(Palette.body)
+          .font(.cove(size: 12)).foregroundStyle(Palette.body)
       }
       if ready {
         HStack {
           Label(selectedProvider.isSubscription ? "Account connected" : "API key saved", systemImage: "checkmark.circle")
-            .font(.cove(size: 14, weight: .medium))
+            .font(.cove(size: 13, weight: .medium))
           Spacer()
           Button(connectionExpanded ? "Done" : "Manage connection") { connectionExpanded.toggle() }
             .buttonStyle(SecondaryButton()).disabled(busy)
@@ -180,10 +182,10 @@ struct IntegrationsView: View {
           }
         }
         Text("Your choice becomes the default only after a successful test. The test uses a short sample, without your emails.")
-          .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+          .font(.cove(size: 12)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
         if let notice {
           Label(notice, systemImage: noticeIsError ? "exclamationmark.circle" : testedConfiguration == configurationID ? "checkmark.circle" : "info.circle")
-            .font(.cove(size: 14, weight: .medium)).foregroundStyle(noticeIsError ? Palette.danger : Palette.body)
+            .font(.cove(size: 13, weight: .medium)).foregroundStyle(noticeIsError ? Palette.danger : Palette.body)
             .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
             .padding(12).frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.surface, in: RoundedRectangle(cornerRadius: 6))
@@ -195,9 +197,9 @@ struct IntegrationsView: View {
           Text("When you write or ask Cove, your provider receives your instructions, recipients, draft, up to 20 relevant emails (48 KB), and calendar context when lookups are enabled.")
           Text("Reply rules you enable also send the triggering email, readable attachment text, and writing instructions during sync. Provider usage and data policies apply.")
           Text("Jev organizes mail separately. You review every email before sending.")
-        }.font(.cove(size: 13)).foregroundStyle(Palette.body)
+        }.font(.cove(size: 12)).foregroundStyle(Palette.body)
           .fixedSize(horizontal: false, vertical: true).padding(.top, 8)
-      }.font(.cove(size: 13)).disclosureGroupStyle(CoveDisclosureStyle())
+      }.font(.cove(size: 12)).disclosureGroupStyle(CoveDisclosureStyle())
     }
   }
 
@@ -211,12 +213,12 @@ struct IntegrationsView: View {
         }.buttonStyle(SecondaryButton()).disabled(busy || !ready)
       }
       if !ready {
-        Text("Connect your account to see its models.").font(.coveBody).foregroundStyle(Palette.body)
+        Text("Connect your account to see its models.").font(.cove(size: 13)).foregroundStyle(Palette.body)
       } else if useExactModel {
         TextField("Exact model ID", text: $model).textFieldStyle(CoveFieldStyle()).disabled(busy)
       } else if models.isEmpty {
         Text(busy ? "Loading model versions…" : "Refresh the list to choose a model.")
-          .font(.coveBody).foregroundStyle(Palette.body)
+          .font(.cove(size: 13)).foregroundStyle(Palette.body)
       } else {
         CoveMenuPicker("Model", selection: $model,
           options: (models.contains(model) || model.isEmpty ? models : [model] + models).map {
@@ -226,16 +228,16 @@ struct IntegrationsView: View {
           Text(!model.hasPrefix("claude-")
             ? "Automatic follows your account’s recommended model as it changes."
             : "Model ID: " + model)
-            .font(.cove(size: 13)).foregroundStyle(Palette.body).textSelection(.enabled)
+            .font(.cove(size: 12)).foregroundStyle(Palette.body).textSelection(.enabled)
         }
       }
       if ready {
         Button(useExactModel ? "Choose from the model list" : "Use a custom model ID…") { useExactModel.toggle() }
-          .buttonStyle(.plain).font(.cove(size: 13)).foregroundStyle(Palette.body).disabled(busy)
+          .buttonStyle(.plain).font(.cove(size: 12)).foregroundStyle(Palette.body).disabled(busy)
         Text(selectedProvider == .claudeSubscription
           ? "Versions come from Claude Code. Availability and usage credits depend on your plan; the test confirms access."
           : "Models come from your account. You can also switch models for individual chats.")
-          .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+          .font(.cove(size: 12)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
       }
     }
   }
@@ -247,7 +249,7 @@ struct IntegrationsView: View {
   }
   private var apiKey: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text("API key").font(.cove(size: 14, weight: .medium))
+      Text("API key").font(.cove(size: 13, weight: .medium))
       SecureField(
         settings.hasKey(selectedProvider) ? "Replace saved API key" : "Paste API key", text: $key
       ).textFieldStyle(CoveFieldStyle())
@@ -263,7 +265,7 @@ struct IntegrationsView: View {
         }.buttonStyle(PrimaryButton()).disabled(
           key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         if settings.hasKey(selectedProvider) {
-          Label("Key saved", systemImage: "checkmark.shield").font(.cove(size: 14, weight: .medium))
+          Label("Key saved", systemImage: "checkmark.shield").font(.cove(size: 13, weight: .medium))
           Spacer()
           Button("Remove key") {
             do {
@@ -277,15 +279,15 @@ struct IntegrationsView: View {
       if selectedProvider == .openAI {
         Text(
           "OpenAI API usage is billed separately from ChatGPT. To use a ChatGPT plan, choose ChatGPT subscription above."
-        ).font(.cove(size: 13)).foregroundStyle(Palette.body)
+        ).font(.cove(size: 12)).foregroundStyle(Palette.body)
       }
     }
   }
   private var claudeSubscription: some View {
     VStack(alignment: .leading, spacing: 12) {
       Text("Sign in with Claude, then return here to choose a model.")
-        .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
-      Text(claude.status).font(.cove(size: 14, weight: .medium))
+        .font(.cove(size: 12)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+      Text(claude.status).font(.cove(size: 13, weight: .medium))
       ViewThatFits(in: .horizontal) {
         HStack(spacing: 10) { claudeActions }
         VStack(alignment: .leading, spacing: 10) { claudeActions }
@@ -293,17 +295,17 @@ struct IntegrationsView: View {
       DisclosureGroup("Advanced connection options") {
         VStack(alignment: .leading, spacing: 12) {
           Text("Claude Code manages its own sign-in in a separate Cove configuration. Cove does not copy your subscription credentials. Requests use no Claude file, shell, or MCP tools; Cove supplies the relevant context.")
-            .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+            .font(.cove(size: 12)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
           Text(claude.executablePath.isEmpty ? "No Claude Code installation found" : claude.executablePath)
-            .font(.cove(size: 13)).foregroundStyle(Palette.muted).textSelection(.enabled)
+            .font(.cove(size: 12)).foregroundStyle(Palette.muted).textSelection(.enabled)
           Button("Select Claude Code…") { chooseClaudeExecutable = true }
             .buttonStyle(SecondaryButton()).disabled(busy)
           Link("Install official Claude Code", destination: URL(string: "https://code.claude.com/docs/en/setup")!)
-            .font(.cove(size: 14, weight: .medium))
+            .font(.cove(size: 13, weight: .medium))
           Text("API keys use the separate Anthropic · API key connection.")
-            .font(.cove(size: 13)).foregroundStyle(Palette.body)
+            .font(.cove(size: 12)).foregroundStyle(Palette.body)
         }.padding(.top, 12)
-      }.font(.cove(size: 13)).disclosureGroupStyle(CoveDisclosureStyle())
+      }.font(.cove(size: 12)).disclosureGroupStyle(CoveDisclosureStyle())
     }
   }
   @ViewBuilder private var claudeActions: some View {
@@ -336,8 +338,8 @@ struct IntegrationsView: View {
   private var subscription: some View {
     VStack(alignment: .leading, spacing: 12) {
       Text("Sign in through your browser, then return here to choose a model. Plan access and usage limits apply.")
-        .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
-      Text(connection.status).font(.cove(size: 14, weight: .medium))
+        .font(.cove(size: 12)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+      Text(connection.status).font(.cove(size: 13, weight: .medium))
       ViewThatFits(in: .horizontal) {
         HStack(spacing: 10) { subscriptionActions }
         VStack(alignment: .leading, spacing: 10) { subscriptionActions }
@@ -346,21 +348,21 @@ struct IntegrationsView: View {
         Label(
           connectionFeedback, systemImage: connection.connected ? "checkmark.circle" : "info.circle"
         )
-        .font(.cove(size: 14, weight: .medium)).foregroundStyle(Palette.body)
+        .font(.cove(size: 13, weight: .medium)).foregroundStyle(Palette.body)
         .fixedSize(horizontal: false, vertical: true)
       }
       DisclosureGroup("Advanced connection options") {
         Text("Uses the official Codex CLI installed on this Mac. Cove keeps a separate sign-in in Keychain. Keep Codex updated to discover the latest models.")
-          .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+          .font(.cove(size: 12)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
         Text(connection.executablePath.isEmpty ? "No Codex installation found" : connection.executablePath)
-          .font(.cove(size: 13)).foregroundStyle(Palette.muted).textSelection(.enabled)
+          .font(.cove(size: 12)).foregroundStyle(Palette.muted).textSelection(.enabled)
           .fixedSize(horizontal: false, vertical: true)
         Button("Select Codex…") { chooseExecutable = true }.buttonStyle(SecondaryButton())
         Link(
           "Install official Codex",
           destination: URL(string: "https://developers.openai.com/codex/cli")!
-        ).font(.cove(size: 14, weight: .medium))
-      }.font(.cove(size: 13)).disclosureGroupStyle(CoveDisclosureStyle())
+        ).font(.cove(size: 13, weight: .medium))
+      }.font(.cove(size: 12)).disclosureGroupStyle(CoveDisclosureStyle())
     }
   }
   @ViewBuilder private var subscriptionActions: some View {

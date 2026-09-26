@@ -41,8 +41,8 @@ struct SettingsView: View {
       VStack(alignment: .leading, spacing: 0) {
         VStack(alignment: .leading, spacing: 6) {
           Text(selectedSection == "Privacy" ? "Privacy & local data" : selectedSection)
-            .font(.cove(size: 26, weight: .medium))
-          Text(sectionDescription).font(.coveBody).foregroundStyle(Palette.body)
+            .font(.cove(size: 24, weight: .medium))
+          Text(sectionDescription).font(.cove(size: 13)).foregroundStyle(Palette.body)
         }.padding(.horizontal, 32).padding(.vertical, 24)
         Divider()
         ScrollView {
@@ -50,7 +50,7 @@ struct SettingsView: View {
             sectionContent
             if saved && (selectedSection == "Gmail" || selectedSection == "Jev · Mail agent") {
               Label("Credentials saved", systemImage: "checkmark.circle")
-                .font(.cove(size: 13)).foregroundStyle(Palette.body)
+                .font(.cove(size: 12)).foregroundStyle(Palette.body)
             }
           }.frame(maxWidth: 800, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading).padding(32)
@@ -111,9 +111,9 @@ struct SettingsView: View {
       DisclosureGroup("Google connection settings", isExpanded: $showAdvancedGoogle) {
         VStack(alignment: .leading, spacing: 16) {
           Toggle("Also connect Google Calendar", isOn: $includeCalendar).toggleStyle(CoveToggleStyle())
-          Text("Calendar access is applied the next time you connect Gmail.").font(.cove(size: 13)).foregroundStyle(Palette.body)
+          Text("Calendar access is applied the next time you connect Gmail.").font(.cove(size: 12)).foregroundStyle(Palette.body)
           Text("Optional: use your own Desktop OAuth client. Leave the client ID blank to use Cove’s included configuration. Disconnect before changing the client for an existing connection.")
-            .font(.cove(size: 13)).foregroundStyle(Palette.body)
+            .font(.cove(size: 12)).foregroundStyle(Palette.body)
           TextField("Custom Google OAuth client ID", text: $clientID).textFieldStyle(CoveFieldStyle())
           SecureField("Custom desktop client secret", text: $secret).textFieldStyle(CoveFieldStyle())
           HStack {
@@ -122,12 +122,12 @@ struct SettingsView: View {
               .buttonStyle(PrimaryButton()).disabled(store.busy || !selectedGoogleConfiguration.isConfigured)
           }
         }.padding(.top, 16)
-      }.font(.cove(size: 14, weight: .medium)).disclosureGroupStyle(CoveDisclosureStyle())
+      }.font(.cove(size: 13, weight: .medium)).disclosureGroupStyle(CoveDisclosureStyle())
       if store.busy {
         HStack {
           ProgressView().controlSize(.small)
-          Text(store.status).font(.cove(size: 13))
-          if store.status.contains("Connecting") { Button("Cancel sign-in") { store.auth.cancel() } }
+          Text(store.status).font(.cove(size: 12))
+          if store.status.contains("Connecting") { Button("Cancel sign-in") { store.auth.cancel() }.buttonStyle(SecondaryButton(compact: true)) }
         }
       }
     }
@@ -143,16 +143,16 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 14) {
           SecureField("TypeSafe API key", text: $key).textFieldStyle(CoveFieldStyle())
           Text("Running Jev sends email content and enabled preferences to TypeSafe. TypeSafe states it does not train on inputs; zero data retention is not established.")
-            .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+            .font(.cove(size: 12)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
           HStack {
             Button("Save credentials") { save() }.buttonStyle(SecondaryButton()).disabled(store.busy)
-            if saved { Label("Credentials saved", systemImage: "checkmark").font(.cove(size: 13)) }
+            if saved { Label("Credentials saved", systemImage: "checkmark").font(.cove(size: 12)) }
             Spacer()
             Link("Get a key ↗", destination: URL(string: "https://console.typesafe.ai")!)
           }
           Link("TypeSafe privacy ↗", destination: URL(string: "https://typesafe.ai/legal/privacy-policy")!)
         }.padding(.top, 16)
-      }.font(.cove(size: 14, weight: .medium)).disclosureGroupStyle(CoveDisclosureStyle())
+      }.font(.cove(size: 13, weight: .medium)).disclosureGroupStyle(CoveDisclosureStyle())
       Divider()
       HStack(spacing: 16) {
         copy("Writing voice", "The tone of your reply templates.")
@@ -163,7 +163,7 @@ struct SettingsView: View {
           .disabled(!store.entered)
       }
       VStack(alignment: .leading, spacing: 10) {
-        Text("Instructions for Jev").font(.cove(size: 14, weight: .medium))
+        Text("Instructions for Jev").font(.cove(size: 13, weight: .medium))
         TextField("One instruction per line", text: Binding(
           get: { store.preferences.instructions.joined(separator: "\n") },
           set: { store.preferences.instructions = $0.components(separatedBy: "\n"); store.persistPreferences() }
@@ -179,10 +179,10 @@ struct SettingsView: View {
   private var privacySection: some View {
     VStack(alignment: .leading, spacing: 16) {
       Label("Credentials and mailbox keys stay in macOS Keychain. Real-account mail is encrypted on this Mac. Disconnect keeps the local cache.", systemImage: "lock.shield")
-        .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+        .font(.cove(size: 12)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
       if store.entered {
         Button("Remove local data and disconnect…", role: .destructive) { confirmErasure = true }
-          .font(.cove(size: 14, weight: .medium)).disabled(store.busy)
+          .buttonStyle(SecondaryButton()).disabled(store.busy)
       }
     }
   }
@@ -192,8 +192,8 @@ struct SettingsView: View {
   }
   private func copy(_ title: String, _ help: String) -> some View {
     VStack(alignment: .leading, spacing: 5) {
-      Text(title).font(.cove(size: 14, weight: .medium))
-      Text(help).font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+      Text(title).font(.cove(size: 13, weight: .medium))
+      Text(help).font(.cove(size: 12)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
     }
   }
   private func connect() {

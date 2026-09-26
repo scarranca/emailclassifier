@@ -36,8 +36,8 @@ struct SettingsSectionHeading: View {
       Image(systemName: icon).font(.cove(size: 18)).frame(width: 24, height: 24)
         .foregroundStyle(Palette.body).accessibilityHidden(true)
       VStack(alignment: .leading, spacing: 6) {
-        Text(title).font(.cove(size: 18, weight: .medium)).foregroundStyle(Palette.ink)
-        Text(subtitle).font(.cove(size: 13)).foregroundStyle(Palette.body)
+        Text(title).font(.cove(size: 16, weight: .medium)).foregroundStyle(Palette.ink)
+        Text(subtitle).font(.cove(size: 12)).foregroundStyle(Palette.body)
           .fixedSize(horizontal: false, vertical: true)
       }
     }

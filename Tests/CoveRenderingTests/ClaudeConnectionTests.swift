@@ -147,7 +147,7 @@ import XCTest
     })
     let settings = AIProviderSettings(defaults: defaults, claude: connection)
     for width in [1100.0, 760.0, 620.0] {
-      let host = NSHostingView(rootView: IntegrationsView(store: store, settings: settings, initialProvider: .claudeSubscription))
+      let host = NSHostingView(rootView: IntegrationsView(store: store, settings: settings, initialProvider: .claudeSubscription, upcomingExpanded: true))
       let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: 1400), styleMask: [.borderless], backing: .buffered, defer: false)
       window.isReleasedWhenClosed = false; window.contentView = host
       for _ in 0..<8 { host.layoutSubtreeIfNeeded(); try await Task.sleep(for: .milliseconds(30)) }

@@ -101,3 +101,6 @@ Keep these task-focused pages in an 800-point reading column. Use 26-point mediu
 
 
 0.1.41 Settings navigation supersedes the all-sections layout: each sidebar destination shows only its own content. The page header names the selected section; remove top-level accordions, Collapse all, and the redundant Settings destination. Keep nested advanced connection disclosures. Switching destinations resets that section’s scroll position while parent-owned credential input stays intact. Legacy Settings entry points resolve to Gmail.
+
+
+0.1.42 settings density: use Cove’s shared 40-point outlined button for local/cloud removal actions; never leave a native automatic bezel among Cove controls. Retain the existing destructive confirmation. Page titles are 24-point medium, section titles 16-point medium, setting labels 13-point medium, explanatory text 12-point regular. Upcoming integrations and the footer use 12-point rows and 11-point secondary copy. Preserve line wrapping and control hit areas while reducing the visual weight of secondary content. This supersedes the larger 0.1.40 settings typography.

@@ -6,6 +6,18 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>Cove</title>
         <item>
+            <title>0.1.42</title>
+            <pubDate>Sat, 26 Sep 2026 00:06:29 -0700</pubDate>
+            <link>https://covemail.xyz/beta/</link>
+            <sparkle:version>44</sparkle:version>
+            <sparkle:shortVersionString>0.1.42</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>A lighter settings interface</h2>
+<ul><li>Data removal actions now use Cove’s standard outlined buttons, with the same confirmation before deleting anything.</li><li>Smaller supporting text and clearer type hierarchy give Settings and Integrations more breathing room.</li><li>Upcoming integrations and connection notes stay visually secondary.</li></ul>
+]]></description>
+            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.42.dmg" length="16815155" type="application/octet-stream" sparkle:edSignature="m5w1d7ElKpyOV+yiw2/X95j1AvYVOyljlfTccRihiDP0Tcckx0vaocWTOEaH/nx7oAHCi1G5EGKCiaiuPM+sBg=="/>
+        </item>
+        <item>
             <title>0.1.41</title>
             <pubDate>Fri, 25 Sep 2026 23:52:22 -0700</pubDate>
             <link>https://covemail.xyz/beta/</link>
@@ -34,26 +46,9 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 ]]></description>
             <enclosure url="https://covemail.xyz/downloads/Cove-0.1.40.dmg" length="16749478" type="application/octet-stream" sparkle:edSignature="FzlhJ3nfpdgQJFktpS6YhrCOlJRyJSbvGsai0aYs2AAjnX9yAVjcdpcpTc0zjvCV6a1DX9zbqZI5W3ZKXQOgAw=="/>
         </item>
-        <item>
-            <title>0.1.39</title>
-            <pubDate>Fri, 25 Sep 2026 22:42:19 -0700</pubDate>
-            <link>https://covemail.xyz/beta/</link>
-            <sparkle:version>41</sparkle:version>
-            <sparkle:shortVersionString>0.1.39</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>An optional cloud copy of recent mail</h2>
-<ul>
-<li>Private pilot accounts can enable Cloud sync in Settings. Your Mac mirrors up to 1,000 downloaded emails from the last 30 days, including labels and Jev results.</li>
-<li>See sync progress, pause uploads, or remove the cloud copy. Cloud sync starts off and requires your Google sign-in and consent.</li>
-<li>Drafts, attachments, Spam, Trash and Google refresh tokens stay out of the cloud mirror. Large bodies are shortened.</li>
-<li>This is the foundation for mobile access. Sync still runs while Cove is open on your Mac; a mobile app and server-side Gmail retrieval are not included yet.</li>
-</ul>
-]]></description>
-            <enclosure url="https://covemail.xyz/downloads/Cove-0.1.39.dmg" length="16740314" type="application/octet-stream" sparkle:edSignature="ywfWT2cXXilgknc6EtY7f7n2B1PBh0eHLCX4nXV6WGYBzxrM/9iRwdeWsvHjfBLhak4d15RMkUZQlmWU5FdRAg=="/>
-        </item>
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: eUGgoARNJ9QYWHgqUDQhpekcjtezhZywwI6hDOwOQSqA7C/vQlj5T6OT9t1QQiMwy6hSTkTSD0nOj8Kmtj0QBQ==
-length: 3981
+edSignature: PxMXoOxbmL4hq4D4gnq1o9pcG51a5lSh8PdOlcRqZQD7zMZgkqlzMr1/2ADIoqhAc7UNkaMdgJuPurRImCHWDg==
+length: 3684
 -->
