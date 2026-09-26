@@ -13,19 +13,21 @@ struct SettingsSidebar: View {
         else { store.chooseFolder("Inbox") }
       } label: {
         Label(store.entered ? "Back to Cove" : "Back to sign in", systemImage: "arrow.left")
-          .font(.coveControl)
+          .font(.cove(size: 14, weight: .medium))
       }.buttonStyle(.plain).disabled(store.busy)
       VStack(spacing: 5) {
         ForEach([("Settings", "gearshape"), ("Gmail", "envelope"),
-                 ("Jev · Mail agent", "sparkles"), ("Reading", "text.alignleft"), ("App updates", "arrow.down.circle")], id: \.0) { title, icon in
+                 ("Jev · Mail agent", "sparkles"), ("Reading", "text.alignleft")] +
+                 (store.cloudConfigured ? [("Cloud sync", "icloud")] : []) +
+                 [("Privacy", "lock.shield"), ("App updates", "arrow.down.circle")], id: \.0) { title, icon in
           Button { select(title) } label: {
-            Label(title, systemImage: icon).font(.coveControl)
+            Label(title, systemImage: icon).font(.cove(size: 14, weight: .medium))
               .frame(maxWidth: .infinity, alignment: .leading).padding(11)
               .background(section == title ? Palette.selection : .clear, in: RoundedRectangle(cornerRadius: 7))
           }.buttonStyle(.plain)
         }
         Button { store.screen = "integrations" } label: {
-          Label("Integrations", systemImage: "square.stack.3d.up").font(.coveControl)
+          Label("Integrations", systemImage: "square.stack.3d.up").font(.cove(size: 14, weight: .medium))
             .frame(maxWidth: .infinity, alignment: .leading).padding(11)
         }.buttonStyle(.plain)
           .background(section == "Integrations" ? Palette.selection : .clear, in: RoundedRectangle(cornerRadius: 7))
@@ -36,7 +38,7 @@ struct SettingsSidebar: View {
         HStack(spacing: 10) {
           CoveAvatar(initials: store.isSample ? "AL" : String(store.accountEmail.prefix(2)).uppercased(), size: 32)
           VStack(alignment: .leading, spacing: 4) {
-            Text(store.isSample ? "Alex Lee" : store.accountEmail).font(.coveControl).lineLimit(1)
+            Text(store.isSample ? "Alex Lee" : store.accountEmail).font(.cove(size: 14, weight: .medium)).lineLimit(1)
             Text(store.isSample ? "Sample mailbox" : "Personal · Gmail").font(.coveMetadata).foregroundStyle(Palette.body)
           }
         }

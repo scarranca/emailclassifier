@@ -4,19 +4,20 @@ import SwiftUI
 struct CloudSyncSettings: View {
   @Bindable var store: AppStore
   @State private var expanded = true
+  var expansion: Binding<Bool>? = nil
   @State private var confirmEnable = false
   @State private var confirmRemove = false
 
   var body: some View {
-    DisclosureGroup(isExpanded: $expanded) {
+    DisclosureGroup(isExpanded: expansion ?? $expanded) {
       VStack(alignment: .leading, spacing: 16) {
         Text("Keep a recent cloud copy for future mobile access. Sync runs while Cove is open on this Mac.")
           .font(.coveBody).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
         Label(store.cloudStatus, systemImage: store.cloudSyncing ? "arrow.triangle.2.circlepath" : "icloud")
-          .font(.coveControl).accessibilityAddTraits(.updatesFrequently)
+          .font(.cove(size: 14, weight: .medium)).accessibilityAddTraits(.updatesFrequently)
         if let lastSync = store.cloudMirror.lastSync {
           Text("Last synced \(lastSync.formatted(date: .abbreviated, time: .shortened))")
-            .font(.coveMetadata).foregroundStyle(Palette.muted)
+            .font(.cove(size: 13)).foregroundStyle(Palette.muted)
         }
         HStack(spacing: 12) {
           if store.cloudSyncing { ProgressView().controlSize(.small) }
@@ -30,7 +31,7 @@ struct CloudSyncSettings: View {
           }
           if store.cloudMirror.accountID != nil {
             Button("Remove cloud copy…", role: .destructive) { confirmRemove = true }
-              .buttonStyle(.plain).font(.coveControl).disabled(store.cloudSyncing || store.busy)
+              .buttonStyle(.plain).font(.cove(size: 14, weight: .medium)).disabled(store.cloudSyncing || store.busy)
           }
         }
         if store.cloudMirror.accountID != nil && store.cloudStatus.localizedCaseInsensitiveContains("reconnect") {
@@ -38,12 +39,12 @@ struct CloudSyncSettings: View {
             .buttonStyle(SecondaryButton()).disabled(store.cloudSyncing || store.busy)
         }
         Text("Private pilot · one Mac uploads up to 1,000 downloaded emails from the last 30 days, including labels and Jev results. Drafts, Spam, Trash and attachments are excluded. Large bodies are shortened. Google credentials stay on this Mac.")
-          .font(.coveMetadata).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+          .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
         Text("Cove stores encrypted mail headers and Jev results in PlanetScale, and encrypted bodies in Google Cloud. Cove’s server holds the decryption keys. Pausing keeps the existing cloud copy; removing local data does not remove it.")
-          .font(.coveMetadata).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+          .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
       }.padding(.top, 16)
     } label: {
-      Text("Cloud sync · Private pilot").font(.coveSection)
+      SettingsSectionHeading(title: "Cloud sync", subtitle: "Private pilot · " + (store.cloudMirror.enabled ? "Enabled" : store.cloudMirror.accountID != nil ? "Paused" : "Off"), icon: "icloud")
     }
     .alert("Enable a cloud copy of recent mail?", isPresented: $confirmEnable) {
       Button("Cancel", role: .cancel) {}

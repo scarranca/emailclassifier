@@ -14,79 +14,91 @@ struct SettingsView: View {
   @State private var saved = false
   @State private var confirmErasure = false
   @State private var includeCalendar = UserDefaults.standard.bool(forKey: "calendarConnected")
-  @AppStorage("reading.externalImages") private var externalImages = false
+  @State private var cloudExpanded = true
+  @State private var privacyExpanded = false
+  @State private var updatesExpanded = false
+  var readSecret: (String) throws -> String? = { try Vault.read($0) }
+
+  private var anyExpanded: Bool {
+    gmailExpanded || jevExpanded || readingExpanded || (store.cloudConfigured && cloudExpanded) || privacyExpanded || updatesExpanded
+  }
+  private func reveal(_ destination: String) {
+    if destination == "Settings" || destination == "Gmail" { gmailExpanded = true }
+    if destination == "Jev · Mail agent" { jevExpanded = true }
+    if destination == "Reading" { readingExpanded = true }
+    if destination == "Cloud sync" { cloudExpanded = true }
+    if destination == "Privacy" { privacyExpanded = true }
+    if destination == "App updates" { updatesExpanded = true }
+  }
 
   var body: some View {
     ScrollViewReader { proxy in
       HStack(spacing: 0) {
         SettingsSidebar(store: store, section: store.settingsSection) { destination in
           store.settingsSection = destination
-          if destination == "Gmail" { gmailExpanded = true }
-          if destination == "Jev · Mail agent" { jevExpanded = true }
-          if destination == "Reading" { readingExpanded = true }
+          reveal(destination)
           withAnimation(.easeInOut(duration: 0.2)) {
             proxy.scrollTo(destination == "Settings" ? "Gmail" : destination, anchor: .top)
           }
         }.frame(width: 224)
         Divider()
         VStack(spacing: 0) {
-          HStack {
-            Text("Settings").font(.coveTitle)
-            Spacer()
-            Button(gmailExpanded || jevExpanded || readingExpanded ? "Collapse all" : "Expand all") {
-              let expand = !(gmailExpanded || jevExpanded || readingExpanded)
-              gmailExpanded = expand
-              jevExpanded = expand
-              readingExpanded = expand
-            }.buttonStyle(SecondaryButton())
-            Text(saved ? "Credentials saved" : "Preferences saved on this Mac").font(.coveMetadata).foregroundStyle(Palette.muted)
-          }.padding(.horizontal, 32).frame(height: 86)
-          Divider()
-          GeometryReader { geometry in
-            ScrollView {
-              HStack(alignment: .top, spacing: 28) {
-                VStack(alignment: .leading, spacing: 24) {
-                  DisclosureGroup(isExpanded: $gmailExpanded) {
-                    gmailSection
-                  } label: {
-                    heading("Gmail", store.auth.isConnected ? "Connected to your everyday inbox." : "Your everyday inbox, connected to Cove.")
-                  }.id("Gmail")
-                  Divider()
-                  DisclosureGroup(isExpanded: $jevExpanded) {
-                    jevSection
-                  } label: {
-                    heading("Jev · Mail agent", "A little help with your inbox. You stay in control.")
-                  }.id("Jev · Mail agent")
-                  Divider()
-                  DisclosureGroup(isExpanded: $readingExpanded) {
-                    ReadingSettingsView(showsHeading: false)
-                  } label: {
-                    Text("Reading").font(.coveSection)
-                  }.id("Reading")
-                  Divider()
-                  if store.cloudConfigured {
-                    CloudSyncSettings(store: store).id("Cloud sync")
-                    Divider()
-                  }
-                  privacySection
-                  Divider()
-                  AppUpdateSettings().id("App updates")
-                  if geometry.size.width < 1040 { preview }
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                if geometry.size.width >= 1040 {
-                  Divider()
-                  preview.frame(width: 280)
-                }
-              }.frame(maxWidth: 1184, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading).padding(32)
+          HStack(alignment: .center, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+              Text("Settings").font(.cove(size: 26, weight: .medium))
+              Text(saved ? "Credentials saved." : "Make Cove work your way.")
+                .font(.coveBody).foregroundStyle(Palette.body)
             }
+            Spacer(minLength: 0)
+            Button(anyExpanded ? "Collapse all" : "Expand all") {
+              let expand = !anyExpanded
+              gmailExpanded = expand; jevExpanded = expand; readingExpanded = expand
+              cloudExpanded = expand; privacyExpanded = expand; updatesExpanded = expand
+            }.buttonStyle(SecondaryButton())
+          }.padding(.horizontal, 32).padding(.vertical, 24)
+          Divider()
+          ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+              DisclosureGroup(isExpanded: $gmailExpanded) {
+                gmailSection
+              } label: {
+                heading("Gmail", store.auth.isConnected ? "Connected · \(store.accountEmail)" : "Connect your inbox and calendar.", icon: "envelope")
+              }.id("Gmail")
+              DisclosureGroup(isExpanded: $jevExpanded) {
+                jevSection
+              } label: {
+                heading("Jev · Mail agent", store.preferences.autoClassify ? "Automatic organization is on" : "Automatic organization is off", icon: "sparkles")
+              }.id("Jev · Mail agent")
+              DisclosureGroup(isExpanded: $readingExpanded) {
+                ReadingSettingsView(showsHeading: false)
+              } label: {
+                heading("Reading", "Message appearance and image privacy", icon: "text.alignleft")
+              }.id("Reading")
+              if store.cloudConfigured {
+                CloudSyncSettings(store: store, expansion: $cloudExpanded).id("Cloud sync")
+              }
+              DisclosureGroup(isExpanded: $privacyExpanded) {
+                privacySection
+              } label: {
+                heading("Privacy & local data", "Storage and account removal", icon: "lock.shield")
+              }.id("Privacy")
+              DisclosureGroup(isExpanded: $updatesExpanded) {
+                AppUpdateSettings()
+              } label: {
+                heading("App updates", "Keep Cove up to date", icon: "arrow.down.circle")
+              }.id("App updates")
+              Text("Preferences save automatically on this Mac. Connection credentials have their own Save button.")
+                .font(.cove(size: 13)).foregroundStyle(Palette.body)
+                .fixedSize(horizontal: false, vertical: true).padding(.horizontal, 4)
+            }.disclosureGroupStyle(SettingsSectionDisclosureStyle())
+              .frame(maxWidth: 800, alignment: .leading)
+              .frame(maxWidth: .infinity, alignment: .leading).padding(32)
           }
+
         }.background(Palette.canvas)
       }
       .onChange(of: store.settingsSection, initial: true) { _, destination in
-        if destination == "Gmail" { gmailExpanded = true }
-        if destination == "Jev · Mail agent" { jevExpanded = true }
-        if destination == "Reading" { readingExpanded = true }
+        reveal(destination)
         withAnimation(.easeInOut(duration: 0.2)) {
           proxy.scrollTo(destination == "Settings" ? "Gmail" : destination, anchor: .top)
         }
@@ -96,8 +108,8 @@ struct SettingsView: View {
     .onAppear {
       showAdvancedGoogle = !BundledGoogleOAuth.configuration.isConfigured
       do {
-        secret = try Vault.read("googleClientSecret") ?? ""
-        key = try Vault.read("typesafeKey") ?? ""
+        secret = try readSecret("googleClientSecret") ?? ""
+        key = try readSecret("typesafeKey") ?? ""
       } catch { store.error = error.localizedDescription }
     }
     .onChange(of: clientID) { _, _ in saved = false }
@@ -131,13 +143,13 @@ struct SettingsView: View {
       Toggle(isOn: $store.backgroundSyncEnabled) {
         copy("Sync mail in the background", "Check for new mail about every two minutes while Cove is open.")
       }.toggleStyle(CoveToggleStyle()).accessibilityLabel("Sync mail in the background")
-      copy("Mail to sync", "Cove syncs your Gmail mailbox, including Inbox, Sent and Archive. Use the sidebar to choose what you read.")
+
       DisclosureGroup("Google connection settings", isExpanded: $showAdvancedGoogle) {
         VStack(alignment: .leading, spacing: 16) {
           Toggle("Also connect Google Calendar", isOn: $includeCalendar).toggleStyle(CoveToggleStyle())
-          Text("Calendar access is applied the next time you connect Gmail.").font(.coveMetadata).foregroundStyle(Palette.body)
+          Text("Calendar access is applied the next time you connect Gmail.").font(.cove(size: 13)).foregroundStyle(Palette.body)
           Text("Optional: use your own Desktop OAuth client. Leave the client ID blank to use Cove’s included configuration. Disconnect before changing the client for an existing connection.")
-            .font(.coveMetadata).foregroundStyle(Palette.body)
+            .font(.cove(size: 13)).foregroundStyle(Palette.body)
           TextField("Custom Google OAuth client ID", text: $clientID).textFieldStyle(CoveFieldStyle())
           SecureField("Custom desktop client secret", text: $secret).textFieldStyle(CoveFieldStyle())
           HStack {
@@ -146,11 +158,11 @@ struct SettingsView: View {
               .buttonStyle(PrimaryButton()).disabled(store.busy || !selectedGoogleConfiguration.isConfigured)
           }
         }.padding(.top, 16)
-      }.font(.coveControl).disclosureGroupStyle(CoveDisclosureStyle())
+      }.font(.cove(size: 14, weight: .medium)).disclosureGroupStyle(CoveDisclosureStyle())
       if store.busy {
         HStack {
           ProgressView().controlSize(.small)
-          Text(store.status).font(.coveMetadata)
+          Text(store.status).font(.cove(size: 13))
           if store.status.contains("Connecting") { Button("Cancel sign-in") { store.auth.cancel() } }
         }
       }
@@ -163,20 +175,21 @@ struct SettingsView: View {
         copy("Organize new mail with Jev", "Categorize new emails, score urgency, and select a key passage.")
       }.toggleStyle(CoveToggleStyle()).disabled(!store.entered || store.isSample || store.busy)
         .accessibilityLabel("Organize new mail with Jev")
-      DisclosureGroup("TypeSafe connection") {
+      DisclosureGroup(key.isEmpty ? "TypeSafe connection · Add a key" : "TypeSafe connection · Manage key") {
         VStack(alignment: .leading, spacing: 14) {
           SecureField("TypeSafe API key", text: $key).textFieldStyle(CoveFieldStyle())
           Text("Running Jev sends email content and enabled preferences to TypeSafe. TypeSafe states it does not train on inputs; zero data retention is not established.")
-            .font(.coveMetadata).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+            .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
           HStack {
             Button("Save credentials") { save() }.buttonStyle(SecondaryButton()).disabled(store.busy)
-            if saved { Label("Credentials saved", systemImage: "checkmark").font(.coveMetadata) }
+            if saved { Label("Credentials saved", systemImage: "checkmark").font(.cove(size: 13)) }
             Spacer()
             Link("Get a key ↗", destination: URL(string: "https://console.typesafe.ai")!)
           }
           Link("TypeSafe privacy ↗", destination: URL(string: "https://typesafe.ai/legal/privacy-policy")!)
         }.padding(.top, 16)
-      }.font(.coveControl).disclosureGroupStyle(CoveDisclosureStyle())
+      }.font(.cove(size: 14, weight: .medium)).disclosureGroupStyle(CoveDisclosureStyle())
+      Divider()
       HStack(spacing: 16) {
         copy("Writing voice", "The tone of your reply templates.")
         Spacer()
@@ -186,80 +199,40 @@ struct SettingsView: View {
           .disabled(!store.entered)
       }
       VStack(alignment: .leading, spacing: 10) {
-        Text("Instructions for Jev").font(.coveControl)
+        Text("Instructions for Jev").font(.cove(size: 14, weight: .medium))
         TextField("One instruction per line", text: Binding(
           get: { store.preferences.instructions.joined(separator: "\n") },
           set: { store.preferences.instructions = $0.components(separatedBy: "\n"); store.persistPreferences() }
         ), axis: .vertical).lineLimit(2...6).textFieldStyle(.plain).disabled(!store.entered)
           .accessibilityLabel("Instructions for Jev")
       }.padding(14).overlay(RoundedRectangle(cornerRadius: 8).stroke(Palette.line))
-      Text("Jev organizes and selects passages. For generated replies and summaries, choose a writing provider in Integrations.")
-        .font(.coveMetadata).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+      Button { store.screen = "integrations" } label: {
+        Label("Set up AI writing & chat in Integrations", systemImage: "arrow.up.right")
+      }.buttonStyle(SecondaryButton()).disabled(!store.entered || store.busy)
     }
   }
 
   private var privacySection: some View {
     VStack(alignment: .leading, spacing: 16) {
       Label("Credentials and mailbox keys stay in macOS Keychain. Real-account mail is encrypted on this Mac. Disconnect keeps the local cache.", systemImage: "lock.shield")
-        .font(.coveMetadata).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+        .font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
       if store.entered {
         Button("Remove local data and disconnect…", role: .destructive) { confirmErasure = true }
-          .font(.coveControl).disabled(store.busy)
+          .font(.cove(size: 14, weight: .medium)).disabled(store.busy)
       }
     }
-  }
-
-  private var preview: some View {
-    VStack(alignment: .leading, spacing: 24) {
-      ZStack(alignment: .topLeading) {
-        if let url = Bundle.module.url(forResource: "sign-in-landscape", withExtension: "jpg"),
-           let artwork = NSImage(contentsOf: url) {
-          GeometryReader { geometry in
-            Image(nsImage: artwork).resizable().scaledToFill()
-              .frame(width: geometry.size.width, height: 206).clipped().accessibilityHidden(true)
-          }
-        }
-        VStack(alignment: .leading, spacing: 8) {
-          Text("A Cove that\nfeels like you.").font(.cove(size: 24, weight: .medium))
-          Text("Your preferences. Your pace.").font(.coveMetadata)
-        }.foregroundStyle(.white).padding(20)
-      }.frame(height: 206).background(.black).clipShape(RoundedRectangle(cornerRadius: 8))
-      VStack(alignment: .leading, spacing: 14) {
-        Text("A preview of your voice").font(.cove(size: 17, weight: .medium))
-        Text("\(store.preferences.voice) · Sample template").font(.coveMetadata).foregroundStyle(Palette.body)
-        VStack(alignment: .leading, spacing: 16) {
-          Text("Re: Website launch").font(.coveControl)
-          Text(ReplyTemplates.reply(to: "Maya", voice: store.preferences.voice, signoff: store.preferences.signoff))
-            .font(.coveBody).lineSpacing(5)
-        }.frame(maxWidth: .infinity, alignment: .leading).padding(18).background(Palette.surface, in: RoundedRectangle(cornerRadius: 8))
-        Text("Nothing is sent without your review.").font(.coveMetadata).foregroundStyle(Palette.body)
-      }
-      Divider()
-      VStack(alignment: .leading, spacing: 12) {
-        Image(systemName: "checkmark.shield").font(.cove(size: 21))
-        Text("Read on your terms.").font(.cove(size: 15, weight: .medium))
-        Text(externalImages ? "External images load in formatted emails. Senders may learn when you open a message." : "External images are off. Load them for an individual message whenever you need to.")
-          .font(.coveMetadata).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
-      }
-      Button("Writing and answers ↗") { store.screen = "integrations" }
-        .buttonStyle(.plain).font(.coveControl).disabled(!store.entered || store.busy)
-      Text("Choose your AI provider in Integrations.").font(.coveMetadata).foregroundStyle(Palette.body)
-    }.frame(maxWidth: .infinity, alignment: .leading)
   }
 
   private var syncDescription: String {
     store.lastSync.map { "Last synced \($0.formatted(date: .omitted, time: .shortened))" } ?? "Ready to sync"
   }
-  private func heading(_ title: String, _ subtitle: String) -> some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text(title).font(.coveSection)
-      Text(subtitle).font(.coveBody).foregroundStyle(Palette.body)
-    }
+  private func heading(_ title: String, _ subtitle: String, icon: String) -> some View {
+    SettingsSectionHeading(title: title, subtitle: subtitle, icon: icon)
   }
   private func copy(_ title: String, _ help: String) -> some View {
     VStack(alignment: .leading, spacing: 5) {
-      Text(title).font(.coveControl)
-      Text(help).font(.coveMetadata).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
+      Text(title).font(.cove(size: 14, weight: .medium))
+      Text(help).font(.cove(size: 13)).foregroundStyle(Palette.body).fixedSize(horizontal: false, vertical: true)
     }
   }
   private func connect() {

@@ -93,3 +93,8 @@ Calendar guides use the existing line token at 50% opacity; half-hour guides use
 ### Calendar month and current time
 
 The view selector offers Workweek, Week, and Month. Month uses a Monday-first six-week grid with selected-day agenda, all-day pills, compact event previews, and an overflow action to show the full day. Narrow grids prioritize titles; event details and times remain available in the agenda. Sync covers all 42 visible days, including adjacent-month dates. Week grids scroll near the current local time on entry and Today; selecting a timed event takes priority. Scrolling remains under user control between navigation actions.
+
+
+### Settings and integrations readability (0.1.40)
+
+Keep these task-focused pages in an 800-point reading column. Use 26-point medium page titles, 18-point medium section names, 14-point medium setting labels, and 13-point body-colored explanations. Do not use decorative landscape banners or a competing preview column here. Settings sections have full-width disclosure headers, icon/title/status grouping, and consistent 22-point insets; all sections participate in Collapse all. Cloud sync and Privacy have sidebar anchors. Advanced account settings remain nested disclosures. Integrations follows three explicit steps: account, model version, test and save. Saved default and connected-account status are separate facts; saving still follows a successful synthetic test. Future integrations stay under one collapsed disclosure.
